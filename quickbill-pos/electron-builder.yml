@@ -1,0 +1,109 @@
+appId: com.quickbill.pos
+productName: QuickBill POS
+copyright: Copyright © 2024 QuickBill Team
+
+directories:
+  output: dist
+  buildResources: resources
+
+files:
+  - "dist-electron/**/*"
+  - "dist/**/*"
+  - "!node_modules"
+  - "!src"
+  - "!*.md"
+  - "!*.yml"
+  - "!*.json"
+
+extraResources:
+  - from: "database/migrations"
+    to: "migrations"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - ia32
+  icon: resources/icon.ico
+  requestedExecutionLevel: asInvoker
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: QuickBill POS
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
+  installerHeaderIcon: resources/icon.ico
+  deleteAppDataOnUninstall: false
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.business
+  icon: resources/icon.icns
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+
+dmg:
+  title: QuickBill POS
+  icon: resources/icon.icns
+  background: resources/dmg-background.png
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+  category: Office
+  icon: resources/icon.png
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+
+appImage:
+  category: Office
+  synopsis: Point of Sale system for retail businesses
+  description: |
+    QuickBill POS is a comprehensive, offline-first Point of Sale system 
+    for retail businesses handling 50,000+ items and 10,000+ customers 
+    with comprehensive billing, inventory, GST compliance, and CRM features.
+
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libdrm2
+    - libxcomposite1
+    - libxdamage1
+    - libxrandr2
+    - libgbm1
+    - libxss1
+    - libasound2
+
+publish:
+  provider: github
+  owner: quickbill-team
+  repo: quickbill-pos
+  releaseType: release
+
+buildVersion: 1.0.0
