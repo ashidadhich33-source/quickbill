@@ -2,107 +2,117 @@ import { ipcMain } from 'electron';
 import { DatabaseManager } from '../database/connection';
 import { generateInvoiceNumber, calculateGST, roundOff } from '../database/queries';
 
+// Helper function to create sale
+async function createSale(dbManager: DatabaseManager, saleData: any) {
+  try {
+    const db = dbManager.getDatabase();
+    const createSale = dbManager.getStatement('createSale');
+    const createSaleItem = dbManager.getStatement('createSaleItem');
+    const updateItemStock = dbManager.getStatement('updateItemStock');
+    const updateCustomerBalance = dbManager.getStatement('updateCustomerBalance');
+    const getConfig = dbManager.getStatement('getCompanyConfig');
+    const updateInvoiceNumber = dbManager.getStatement('updateCompanyConfig');
+
+    if (!createSale || !createSaleItem || !updateItemStock || !getConfig || !updateInvoiceNumber) {
+      throw new Error('Required database statements not prepared');
+    }
+
+    // Get company config for invoice number
+    const config = getConfig.get() as any;
+    const invoiceNumber = generateInvoiceNumber(config.invoice_prefix, config.current_invoice_number);
+
+    // Start transaction
+    const transaction = db.transaction((data: any) => {
+      // Validate stock for all items
+      for (const item of data.items) {
+        const stockCheck = db.prepare('SELECT current_stock FROM items WHERE id = ?').get(item.itemId);
+        if (!stockCheck || stockCheck.current_stock < item.quantity) {
+          throw new Error(`Insufficient stock for ${item.itemName}`);
+        }
+      }
+
+      // Create sale record
+      const saleId = createSale.run(
+        invoiceNumber,
+        new Date().toISOString(),
+        data.customer?.id || null,
+        data.customer?.name || null,
+        data.customer?.mobile || null,
+        data.subtotal,
+        data.discount || 0,
+        data.tax || 0,
+        data.roundOff || 0,
+        data.total,
+        data.paidAmount || data.total,
+        data.balanceAmount || 0,
+        data.paymentMode || 'CASH',
+        'SALES',
+        'COMPLETED',
+        data.salesmanId || null,
+        data.terminalId || 'POS-01',
+        data.createdBy || 1
+      ).lastInsertRowid;
+
+      // Create sale items and update stock
+      for (const item of data.items) {
+        createSaleItem.run(
+          saleId,
+          item.itemId,
+          item.barcode,
+          item.itemName,
+          item.quantity,
+          item.unitPrice,
+          item.discountPercent || 0,
+          item.discountAmount || 0,
+          item.gstPercent || 0,
+          item.gstAmount || 0,
+          item.total
+        );
+
+        // Update stock
+        updateItemStock.run(item.quantity, item.itemId);
+      }
+
+      // Update customer balance if credit sale
+      if (data.paymentMode === 'CREDIT' && data.customer?.id) {
+        updateCustomerBalance.run(data.total, data.customer.id);
+      }
+
+      // Update invoice number
+      updateInvoiceNumber.run(
+        config.company_name,
+        config.address,
+        config.gst_number,
+        config.phone,
+        config.email,
+        config.invoice_prefix,
+        config.current_invoice_number + 1,
+        config.fiscal_year_start,
+        config.currency_symbol,
+        config.date_format,
+        config.time_zone
+      );
+
+      return { success: true, saleId, invoiceNumber };
+    });
+
+    const result = transaction(saleData);
+    return result;
+  } catch (error) {
+    console.error('Error creating sale:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export function setupSalesHandlers(dbManager: DatabaseManager): void {
   // Create new sale
   ipcMain.handle('sales:create', async (event, saleData) => {
-    try {
-      const db = dbManager.getDatabase();
-      const createSale = dbManager.getStatement('createSale');
-      const createSaleItem = dbManager.getStatement('createSaleItem');
-      const updateItemStock = dbManager.getStatement('updateItemStock');
-      const updateCustomerBalance = dbManager.getStatement('updateCustomerBalance');
-      const getConfig = dbManager.getStatement('getCompanyConfig');
-      const updateInvoiceNumber = dbManager.getStatement('updateCompanyConfig');
+    return createSale(dbManager, saleData);
+  });
 
-      if (!createSale || !createSaleItem || !updateItemStock || !getConfig || !updateInvoiceNumber) {
-        throw new Error('Required database statements not prepared');
-      }
-
-      // Get company config for invoice number
-      const config = getConfig.get() as any;
-      const invoiceNumber = generateInvoiceNumber(config.invoice_prefix, config.current_invoice_number);
-
-      // Start transaction
-      const transaction = db.transaction((data: any) => {
-        // Validate stock for all items
-        for (const item of data.items) {
-          const stockCheck = db.prepare('SELECT current_stock FROM items WHERE id = ?').get(item.itemId);
-          if (!stockCheck || stockCheck.current_stock < item.quantity) {
-            throw new Error(`Insufficient stock for ${item.itemName}`);
-          }
-        }
-
-        // Create sale record
-        const saleId = createSale.run(
-          invoiceNumber,
-          new Date().toISOString(),
-          data.customer?.id || null,
-          data.customer?.name || null,
-          data.customer?.mobile || null,
-          data.subtotal,
-          data.discount || 0,
-          data.tax || 0,
-          data.roundOff || 0,
-          data.total,
-          data.paidAmount || data.total,
-          data.balanceAmount || 0,
-          data.paymentMode || 'CASH',
-          'SALES',
-          'COMPLETED',
-          data.salesmanId || null,
-          data.terminalId || 'POS-01',
-          data.createdBy || 1
-        ).lastInsertRowid;
-
-        // Create sale items and update stock
-        for (const item of data.items) {
-          createSaleItem.run(
-            saleId,
-            item.itemId,
-            item.barcode,
-            item.itemName,
-            item.quantity,
-            item.unitPrice,
-            item.discountPercent || 0,
-            item.discountAmount || 0,
-            item.gstPercent || 0,
-            item.gstAmount || 0,
-            item.total
-          );
-
-          // Update stock
-          updateItemStock.run(item.quantity, item.itemId);
-        }
-
-        // Update customer balance if credit sale
-        if (data.paymentMode === 'CREDIT' && data.customer?.id) {
-          updateCustomerBalance.run(data.total, data.customer.id);
-        }
-
-        // Update invoice number
-        updateInvoiceNumber.run(
-          config.company_name,
-          config.address,
-          config.gst_number,
-          config.phone,
-          config.email,
-          config.invoice_prefix,
-          config.current_invoice_number + 1,
-          config.fiscal_year_start,
-          config.currency_symbol,
-          config.date_format,
-          config.time_zone
-        );
-
-        return { success: true, saleId, invoiceNumber };
-      });
-
-      const result = transaction(saleData);
-      return result;
-    } catch (error) {
-      console.error('Error creating sale:', error);
-      return { success: false, error: error.message };
-    }
+  // Save sale (alias for create)
+  ipcMain.handle('sales:save', async (event, saleData) => {
+    return createSale(dbManager, saleData);
   });
 
   // Get sale by ID
@@ -140,6 +150,25 @@ export function setupSalesHandlers(dbManager: DatabaseManager): void {
       return { success: true, data: sales };
     } catch (error) {
       console.error('Error getting sales by date:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Get all sales
+  ipcMain.handle('sales:getAll', async (event, limit = 100, offset = 0) => {
+    try {
+      const db = dbManager.getDatabase();
+      const sales = db.prepare(`
+        SELECT * FROM sales 
+        ORDER BY invoice_date DESC 
+        LIMIT ? OFFSET ?
+      `).all(limit, offset);
+
+      const total = db.prepare('SELECT COUNT(*) as count FROM sales').get().count;
+
+      return { success: true, data: { sales, total } };
+    } catch (error) {
+      console.error('Error getting all sales:', error);
       return { success: false, error: error.message };
     }
   });

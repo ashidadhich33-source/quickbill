@@ -46,8 +46,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Sales API
   createSale: (saleData: any) => ipcRenderer.invoke('sales:create', saleData),
+  saveSale: (saleData: any) => ipcRenderer.invoke('sales:save', saleData),
   getSaleById: (id: number) => ipcRenderer.invoke('sales:getById', id),
   getSalesByDate: (date: string) => ipcRenderer.invoke('sales:getByDate', date),
+  getAllSales: (limit?: number, offset?: number) => ipcRenderer.invoke('sales:getAll', limit, offset),
   getDailySummary: (date: string) => ipcRenderer.invoke('sales:getDailySummary', date),
   calculateGST: (amount: number, rate: number, inclusive?: boolean) => 
     ipcRenderer.invoke('sales:calculateGST', amount, rate, inclusive),
@@ -153,8 +155,10 @@ declare global {
 
       // Sales API
       createSale: (saleData: any) => Promise<any>;
+      saveSale: (saleData: any) => Promise<any>;
       getSaleById: (id: number) => Promise<any>;
       getSalesByDate: (date: string) => Promise<any>;
+      getAllSales: (limit?: number, offset?: number) => Promise<any>;
       getDailySummary: (date: string) => Promise<any>;
       calculateGST: (amount: number, rate: number, inclusive?: boolean) => Promise<any>;
       roundOff: (amount: number) => Promise<any>;

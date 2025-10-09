@@ -4,6 +4,9 @@ import { DatabaseManager } from './database/connection';
 import { setupSalesHandlers } from './ipc/sales.handler';
 import { setupItemsHandlers } from './ipc/items.handler';
 import { setupCustomersHandlers } from './ipc/customers.handler';
+import { setupReportsHandlers } from './ipc/reports.handler';
+import { setupSystemHandlers } from './ipc/system.handler';
+import { setupFileHandlers } from './ipc/file.handler';
 
 class QuickBillApp {
   private mainWindow: BrowserWindow | null = null;
@@ -20,6 +23,11 @@ class QuickBillApp {
 
     // Setup IPC handlers
     this.setupIpcHandlers();
+    
+    // Setup additional handlers
+    setupReportsHandlers(this.dbManager);
+    setupSystemHandlers();
+    setupFileHandlers();
 
     // Create main window
     await this.createMainWindow();

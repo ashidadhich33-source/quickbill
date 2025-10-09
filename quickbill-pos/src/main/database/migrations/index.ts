@@ -158,7 +158,7 @@ export function runMigrations(db: Database.Database): void {
   `);
 
   // Create indexes for performance
-  this.createIndexes(db);
+  createIndexes(db);
 
   // Insert default company config if not exists
   const configExists = db.prepare('SELECT COUNT(*) as count FROM company_config').get() as { count: number };
