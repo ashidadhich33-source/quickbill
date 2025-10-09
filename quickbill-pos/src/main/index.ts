@@ -7,6 +7,9 @@ import { setupCustomersHandlers } from './ipc/customers.handler';
 import { setupReportsHandlers } from './ipc/reports.handler';
 import { setupSystemHandlers } from './ipc/system.handler';
 import { setupFileHandlers } from './ipc/file.handler';
+import { setupAuthHandlers } from './ipc/auth.handler';
+import { setupPrinterHandlers } from './ipc/printer.handler';
+import { setupEncryptionHandlers } from './ipc/encryption.handler';
 
 class QuickBillApp {
   private mainWindow: BrowserWindow | null = null;
@@ -25,12 +28,19 @@ class QuickBillApp {
     this.setupIpcHandlers();
     
     // Setup additional handlers
+    setupAuthHandlers(this.dbManager);
     setupReportsHandlers(this.dbManager);
     setupSystemHandlers();
     setupFileHandlers();
+    setupEncryptionHandlers();
 
     // Create main window
     await this.createMainWindow();
+
+    // Setup printer handlers after main window is created
+    if (this.mainWindow) {
+      setupPrinterHandlers(this.mainWindow);
+    }
 
     // Setup application menu
     this.setupMenu();

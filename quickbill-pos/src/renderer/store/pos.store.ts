@@ -52,6 +52,12 @@ interface POSState {
     data: any;
     timestamp: string;
   }>;
+  heldBills: Array<{
+    holdId: string;
+    createdAt: string;
+    expiresAt: string;
+    cashierName: string;
+  }>;
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;
@@ -67,6 +73,8 @@ interface POSState {
   recallBill: (id: string) => void;
   getHoldBills: () => Array<{ id: string; data: any; timestamp: string }>;
   clearHoldBill: (id: string) => void;
+  loadHeldBills: () => Promise<void>;
+  deleteHeldBill: (holdId: string) => Promise<void>;
 }
 
 let cartItemId = 1;
@@ -82,6 +90,7 @@ export const usePOSStore = create<POSState>()(
       billDiscount: 0,
       billDiscountType: 'percent',
       holdBills: [],
+      heldBills: [],
 
       addToCart: (item) => {
         const existingItem = get().cart.find(
@@ -280,6 +289,30 @@ export const usePOSStore = create<POSState>()(
         set((state) => ({
           holdBills: state.holdBills.filter((bill) => bill.id !== id),
         }));
+      },
+
+      loadHeldBills: async () => {
+        try {
+          const result = await window.electronAPI.getHeldBills();
+          if (result.success) {
+            set({ heldBills: result.data || [] });
+          }
+        } catch (error) {
+          console.error('Error loading held bills:', error);
+        }
+      },
+
+      deleteHeldBill: async (holdId) => {
+        try {
+          const result = await window.electronAPI.deleteHeldBill(holdId);
+          if (result.success) {
+            set((state) => ({
+              heldBills: state.heldBills.filter((bill) => bill.holdId !== holdId),
+            }));
+          }
+        } catch (error) {
+          console.error('Error deleting held bill:', error);
+        }
       },
     }),
     {

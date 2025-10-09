@@ -221,9 +221,58 @@ export function setupSalesHandlers(dbManager: DatabaseManager): void {
   // Print invoice
   ipcMain.handle('sales:printInvoice', async (event, invoiceNumber) => {
     try {
-      // This would integrate with printer
-      console.log(`Printing invoice: ${invoiceNumber}`);
-      return { success: true };
+      // Get sale data
+      const getSale = dbManager.getStatement('getSaleById');
+      const getSaleItems = dbManager.getStatement('getSaleItems');
+      const getConfig = dbManager.getStatement('getCompanyConfig');
+
+      if (!getSale || !getSaleItems || !getConfig) {
+        throw new Error('Required database statements not prepared');
+      }
+
+      const sale = getSale.get(invoiceNumber);
+      if (!sale) {
+        return { success: false, error: 'Invoice not found' };
+      }
+
+      const items = getSaleItems.all(sale.id);
+      const config = getConfig.get();
+
+      // Format receipt data
+      const receiptData = {
+        companyName: config.company_name,
+        address: config.address,
+        phone: config.phone,
+        email: config.email,
+        gstNumber: config.gst_number,
+        invoiceNumber: sale.invoice_number,
+        date: new Date(sale.invoice_date).toLocaleDateString(),
+        time: new Date(sale.invoice_date).toLocaleTimeString(),
+        customerName: sale.customer_name,
+        customerMobile: sale.customer_mobile,
+        items: items.map(item => ({
+          name: item.item_name,
+          quantity: item.quantity,
+          price: item.unit_price,
+          total: item.total_amount
+        })),
+        subtotal: sale.subtotal,
+        discount: sale.discount_amount,
+        tax: sale.tax_amount,
+        total: sale.total_amount,
+        paymentMode: sale.payment_mode,
+        receivedAmount: sale.paid_amount,
+        returnAmount: sale.balance_amount,
+        cashier: 'Admin', // This should come from user context
+        terminal: sale.terminal_id || 'POS-01'
+      };
+
+      // Use the printer service
+      const { PrinterService } = require('../utils/printer.service');
+      const printerService = new PrinterService(require('electron').BrowserWindow.getFocusedWindow());
+      
+      const result = await printerService.printReceipt(receiptData);
+      return result;
     } catch (error) {
       console.error('Error printing invoice:', error);
       return { success: false, error: error.message };
@@ -233,16 +282,27 @@ export function setupSalesHandlers(dbManager: DatabaseManager): void {
   // Hold bill
   ipcMain.handle('sales:holdBill', async (event, billData) => {
     try {
-      // Store bill data temporarily (could use a separate table or file)
-      const holdData = {
-        id: Date.now(),
-        data: billData,
-        timestamp: new Date().toISOString()
-      };
+      const db = dbManager.getDatabase();
       
-      // In a real implementation, you'd store this in a holds table
-      console.log('Bill held:', holdData);
-      return { success: true, data: holdData };
+      // Generate unique hold ID
+      const holdId = `HOLD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Set expiration time (24 hours from now)
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      
+      // Store bill data in holds table
+      const result = db.prepare(`
+        INSERT INTO holds (hold_id, hold_data, user_id, expires_at)
+        VALUES (?, ?, ?, ?)
+      `).run(
+        holdId,
+        JSON.stringify(billData),
+        billData.userId || 1, // Default to admin user
+        expiresAt
+      );
+      
+      console.log('Bill held:', holdId);
+      return { success: true, data: { holdId, expiresAt } };
     } catch (error) {
       console.error('Error holding bill:', error);
       return { success: false, error: error.message };
@@ -252,12 +312,57 @@ export function setupSalesHandlers(dbManager: DatabaseManager): void {
   // Recall bill
   ipcMain.handle('sales:recallBill', async (event, holdId) => {
     try {
+      const db = dbManager.getDatabase();
+      
       // Retrieve held bill data
-      // In a real implementation, you'd fetch from holds table
+      const hold = db.prepare(`
+        SELECT hold_data, expires_at FROM holds 
+        WHERE hold_id = ? AND expires_at > CURRENT_TIMESTAMP
+      `).get(holdId);
+      
+      if (!hold) {
+        return { success: false, error: 'Hold not found or expired' };
+      }
+      
+      const billData = JSON.parse(hold.hold_data);
       console.log('Recalling bill:', holdId);
-      return { success: true, data: null };
+      return { success: true, data: billData };
     } catch (error) {
       console.error('Error recalling bill:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Get held bills
+  ipcMain.handle('sales:getHeldBills', async (event) => {
+    try {
+      const db = dbManager.getDatabase();
+      
+      const holds = db.prepare(`
+        SELECT h.hold_id, h.created_at, h.expires_at, u.full_name as cashier_name
+        FROM holds h
+        JOIN users u ON h.user_id = u.id
+        WHERE h.expires_at > CURRENT_TIMESTAMP
+        ORDER BY h.created_at DESC
+      `).all();
+      
+      return { success: true, data: holds };
+    } catch (error) {
+      console.error('Error getting held bills:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Delete held bill
+  ipcMain.handle('sales:deleteHeldBill', async (event, holdId) => {
+    try {
+      const db = dbManager.getDatabase();
+      
+      db.prepare('DELETE FROM holds WHERE hold_id = ?').run(holdId);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting held bill:', error);
       return { success: false, error: error.message };
     }
   });
