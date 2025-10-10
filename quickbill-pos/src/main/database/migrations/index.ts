@@ -230,6 +230,195 @@ export function runMigrations(db: Database.Database): void {
     )
   `);
 
+  // Create suppliers table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS suppliers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      supplier_code VARCHAR(20) UNIQUE NOT NULL,
+      company_name VARCHAR(200) NOT NULL,
+      contact_person VARCHAR(100),
+      email VARCHAR(100),
+      phone VARCHAR(20),
+      mobile VARCHAR(15),
+      address TEXT,
+      city VARCHAR(50),
+      state VARCHAR(50),
+      pincode VARCHAR(10),
+      gst_number VARCHAR(20),
+      pan_number VARCHAR(20),
+      payment_terms INTEGER DEFAULT 30,
+      credit_limit DECIMAL(12, 2) DEFAULT 0,
+      current_balance DECIMAL(12, 2) DEFAULT 0,
+      is_active BOOLEAN DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create purchase_orders table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      po_number VARCHAR(30) UNIQUE NOT NULL,
+      po_date DATE NOT NULL,
+      supplier_id INTEGER NOT NULL,
+      supplier_name VARCHAR(200) NOT NULL,
+      expected_delivery_date DATE,
+      subtotal DECIMAL(12, 2) NOT NULL,
+      discount_amount DECIMAL(10, 2) DEFAULT 0,
+      tax_amount DECIMAL(10, 2) NOT NULL,
+      total_amount DECIMAL(12, 2) NOT NULL,
+      status VARCHAR(20) DEFAULT 'DRAFT',
+      notes TEXT,
+      created_by INTEGER NOT NULL,
+      approved_by INTEGER,
+      approved_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+      FOREIGN KEY (created_by) REFERENCES users(id),
+      FOREIGN KEY (approved_by) REFERENCES users(id)
+    )
+  `);
+
+  // Create purchase_order_items table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      po_id INTEGER NOT NULL,
+      item_id INTEGER NOT NULL,
+      item_name TEXT NOT NULL,
+      quantity DECIMAL(10, 3) NOT NULL,
+      unit_price DECIMAL(10, 2) NOT NULL,
+      discount_percent DECIMAL(5, 2) DEFAULT 0,
+      discount_amount DECIMAL(10, 2) DEFAULT 0,
+      tax_percent DECIMAL(5, 2) NOT NULL,
+      tax_amount DECIMAL(10, 2) NOT NULL,
+      total_amount DECIMAL(12, 2) NOT NULL,
+      received_quantity DECIMAL(10, 3) DEFAULT 0,
+      pending_quantity DECIMAL(10, 3) NOT NULL,
+      FOREIGN KEY (po_id) REFERENCES purchase_orders(id),
+      FOREIGN KEY (item_id) REFERENCES items(id)
+    )
+  `);
+
+  // Create purchase_receipts table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_receipts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      receipt_number VARCHAR(30) UNIQUE NOT NULL,
+      receipt_date DATE NOT NULL,
+      po_id INTEGER,
+      supplier_id INTEGER NOT NULL,
+      supplier_name VARCHAR(200) NOT NULL,
+      supplier_invoice_number VARCHAR(50),
+      supplier_invoice_date DATE,
+      subtotal DECIMAL(12, 2) NOT NULL,
+      discount_amount DECIMAL(10, 2) DEFAULT 0,
+      tax_amount DECIMAL(10, 2) NOT NULL,
+      total_amount DECIMAL(12, 2) NOT NULL,
+      status VARCHAR(20) DEFAULT 'RECEIVED',
+      notes TEXT,
+      received_by INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (po_id) REFERENCES purchase_orders(id),
+      FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+      FOREIGN KEY (received_by) REFERENCES users(id)
+    )
+  `);
+
+  // Create purchase_receipt_items table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_receipt_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      receipt_id INTEGER NOT NULL,
+      po_item_id INTEGER,
+      item_id INTEGER NOT NULL,
+      item_name TEXT NOT NULL,
+      quantity DECIMAL(10, 3) NOT NULL,
+      unit_price DECIMAL(10, 2) NOT NULL,
+      discount_percent DECIMAL(5, 2) DEFAULT 0,
+      discount_amount DECIMAL(10, 2) DEFAULT 0,
+      tax_percent DECIMAL(5, 2) NOT NULL,
+      tax_amount DECIMAL(10, 2) NOT NULL,
+      total_amount DECIMAL(12, 2) NOT NULL,
+      batch_number VARCHAR(50),
+      expiry_date DATE,
+      condition_status VARCHAR(20) DEFAULT 'GOOD',
+      FOREIGN KEY (receipt_id) REFERENCES purchase_receipts(id),
+      FOREIGN KEY (po_item_id) REFERENCES purchase_order_items(id),
+      FOREIGN KEY (item_id) REFERENCES items(id)
+    )
+  `);
+
+  // Create supplier_payments table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS supplier_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      payment_number VARCHAR(30) UNIQUE NOT NULL,
+      payment_date DATE NOT NULL,
+      supplier_id INTEGER NOT NULL,
+      supplier_name VARCHAR(200) NOT NULL,
+      amount DECIMAL(12, 2) NOT NULL,
+      payment_mode VARCHAR(20) NOT NULL,
+      reference_number VARCHAR(50),
+      notes TEXT,
+      receipt_ids TEXT,
+      created_by INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    )
+  `);
+
+  // Create purchase_returns table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_returns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_number VARCHAR(30) UNIQUE NOT NULL,
+      return_date DATE NOT NULL,
+      receipt_id INTEGER NOT NULL,
+      supplier_id INTEGER NOT NULL,
+      supplier_name VARCHAR(200) NOT NULL,
+      reason TEXT NOT NULL,
+      subtotal DECIMAL(12, 2) NOT NULL,
+      tax_amount DECIMAL(10, 2) NOT NULL,
+      total_amount DECIMAL(12, 2) NOT NULL,
+      status VARCHAR(20) DEFAULT 'PENDING',
+      notes TEXT,
+      processed_by INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (receipt_id) REFERENCES purchase_receipts(id),
+      FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+      FOREIGN KEY (processed_by) REFERENCES users(id)
+    )
+  `);
+
+  // Create purchase_return_items table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_return_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_id INTEGER NOT NULL,
+      receipt_item_id INTEGER NOT NULL,
+      item_id INTEGER NOT NULL,
+      item_name TEXT NOT NULL,
+      quantity DECIMAL(10, 3) NOT NULL,
+      unit_price DECIMAL(10, 2) NOT NULL,
+      tax_percent DECIMAL(5, 2) NOT NULL,
+      tax_amount DECIMAL(10, 2) NOT NULL,
+      total_amount DECIMAL(12, 2) NOT NULL,
+      return_reason TEXT NOT NULL,
+      condition_status VARCHAR(20) DEFAULT 'DAMAGED',
+      batch_number VARCHAR(50),
+      expiry_date DATE,
+      FOREIGN KEY (return_id) REFERENCES purchase_returns(id),
+      FOREIGN KEY (receipt_item_id) REFERENCES purchase_receipt_items(id),
+      FOREIGN KEY (item_id) REFERENCES items(id)
+    )
+  `);
+
   // Create audit_log table
   db.exec(`
     CREATE TABLE IF NOT EXISTS audit_log (
@@ -319,4 +508,39 @@ function createIndexes(db: Database.Database): void {
   db.exec('CREATE INDEX IF NOT EXISTS idx_sales_returns_date ON sales_returns(return_date)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_sales_return_items_return ON sales_return_items(return_id)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_sales_return_items_item ON sales_return_items(item_id)');
+  
+  // Supplier indexes
+  db.exec('CREATE INDEX IF NOT EXISTS idx_suppliers_code ON suppliers(supplier_code)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_suppliers_name ON suppliers(company_name)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_suppliers_active ON suppliers(is_active)');
+  
+  // Purchase Order indexes
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_orders_number ON purchase_orders(po_number)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_orders_supplier ON purchase_orders(supplier_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_orders_date ON purchase_orders(po_date)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_orders_status ON purchase_orders(status)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_order_items_po ON purchase_order_items(po_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_order_items_item ON purchase_order_items(item_id)');
+  
+  // Purchase Receipt indexes
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_receipts_number ON purchase_receipts(receipt_number)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_receipts_supplier ON purchase_receipts(supplier_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_receipts_date ON purchase_receipts(receipt_date)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_receipts_po ON purchase_receipts(po_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_receipt_items_receipt ON purchase_receipt_items(receipt_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_receipt_items_item ON purchase_receipt_items(item_id)');
+  
+  // Supplier Payment indexes
+  db.exec('CREATE INDEX IF NOT EXISTS idx_supplier_payments_number ON supplier_payments(payment_number)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_supplier_payments_supplier ON supplier_payments(supplier_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_supplier_payments_date ON supplier_payments(payment_date)');
+  
+  // Purchase Return indexes
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_returns_number ON purchase_returns(return_number)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_returns_receipt ON purchase_returns(receipt_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_returns_supplier ON purchase_returns(supplier_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_returns_date ON purchase_returns(return_date)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_returns_status ON purchase_returns(status)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_return_items_return ON purchase_return_items(return_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_return_items_item ON purchase_return_items(item_id)');
 }

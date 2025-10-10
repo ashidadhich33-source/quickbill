@@ -53,6 +53,155 @@ export interface CustomerChild {
   child_order: 1 | 2 | 3;
 }
 
+export interface Supplier {
+  id: number;
+  supplier_code: string;
+  company_name: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  gst_number?: string;
+  pan_number?: string;
+  payment_terms: number;
+  credit_limit: number;
+  current_balance: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrder {
+  id: number;
+  po_number: string;
+  po_date: string;
+  supplier_id: number;
+  supplier_name: string;
+  expected_delivery_date?: string;
+  subtotal: number;
+  discount_amount: number;
+  tax_amount: number;
+  total_amount: number;
+  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'SENT' | 'PARTIALLY_RECEIVED' | 'FULLY_RECEIVED' | 'CANCELLED';
+  notes?: string;
+  created_by: number;
+  approved_by?: number;
+  approved_at?: string;
+  created_at: string;
+  updated_at: string;
+  items?: PurchaseOrderItem[];
+}
+
+export interface PurchaseOrderItem {
+  id: number;
+  po_id: number;
+  item_id: number;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  discount_percent: number;
+  discount_amount: number;
+  tax_percent: number;
+  tax_amount: number;
+  total_amount: number;
+  received_quantity: number;
+  pending_quantity: number;
+}
+
+export interface PurchaseReceipt {
+  id: number;
+  receipt_number: string;
+  receipt_date: string;
+  po_id?: number;
+  supplier_id: number;
+  supplier_name: string;
+  supplier_invoice_number?: string;
+  supplier_invoice_date?: string;
+  subtotal: number;
+  discount_amount: number;
+  tax_amount: number;
+  total_amount: number;
+  status: 'RECEIVED' | 'VERIFIED' | 'REJECTED';
+  notes?: string;
+  received_by: number;
+  created_at: string;
+  updated_at: string;
+  items?: PurchaseReceiptItem[];
+}
+
+export interface PurchaseReceiptItem {
+  id: number;
+  receipt_id: number;
+  po_item_id?: number;
+  item_id: number;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  discount_percent: number;
+  discount_amount: number;
+  tax_percent: number;
+  tax_amount: number;
+  total_amount: number;
+  batch_number?: string;
+  expiry_date?: string;
+  condition_status: 'GOOD' | 'DAMAGED' | 'EXPIRED';
+}
+
+export interface SupplierPayment {
+  id: number;
+  payment_number: string;
+  payment_date: string;
+  supplier_id: number;
+  supplier_name: string;
+  amount: number;
+  payment_mode: 'CASH' | 'CHEQUE' | 'BANK_TRANSFER' | 'UPI' | 'CARD';
+  reference_number?: string;
+  notes?: string;
+  receipt_ids?: string;
+  created_by: number;
+  created_at: string;
+}
+
+export interface PurchaseReturn {
+  id: number;
+  return_number: string;
+  return_date: string;
+  receipt_id: number;
+  supplier_id: number;
+  supplier_name: string;
+  reason: string;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSED';
+  notes?: string;
+  processed_by: number;
+  created_at: string;
+  updated_at: string;
+  items?: PurchaseReturnItem[];
+}
+
+export interface PurchaseReturnItem {
+  id: number;
+  return_id: number;
+  receipt_item_id: number;
+  item_id: number;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  tax_percent: number;
+  tax_amount: number;
+  total_amount: number;
+  return_reason: string;
+  condition_status: 'DAMAGED' | 'DEFECTIVE' | 'WRONG_ITEM' | 'EXPIRED';
+  batch_number?: string;
+  expiry_date?: string;
+}
+
 export interface Sale {
   id: number;
   invoice_number: string;
@@ -276,6 +425,74 @@ export interface CustomerFormData {
   children?: Array<{
     name: string;
     date_of_birth: string;
+  }>;
+}
+
+export interface SupplierFormData {
+  supplier_code: string;
+  company_name: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  gst_number?: string;
+  pan_number?: string;
+  payment_terms?: number;
+  credit_limit?: number;
+}
+
+export interface PurchaseOrderFormData {
+  supplier_id: number;
+  expected_delivery_date?: string;
+  notes?: string;
+  items: Array<{
+    item_id: number;
+    quantity: number;
+    unit_price: number;
+    discount_percent?: number;
+  }>;
+}
+
+export interface PurchaseReceiptFormData {
+  po_id?: number;
+  supplier_id: number;
+  supplier_invoice_number?: string;
+  supplier_invoice_date?: string;
+  notes?: string;
+  items: Array<{
+    po_item_id?: number;
+    item_id: number;
+    quantity: number;
+    unit_price: number;
+    discount_percent?: number;
+    batch_number?: string;
+    expiry_date?: string;
+    condition_status?: 'GOOD' | 'DAMAGED' | 'EXPIRED';
+  }>;
+}
+
+export interface SupplierPaymentFormData {
+  supplier_id: number;
+  amount: number;
+  payment_mode: 'CASH' | 'CHEQUE' | 'BANK_TRANSFER' | 'UPI' | 'CARD';
+  reference_number?: string;
+  notes?: string;
+  receipt_ids?: number[];
+}
+
+export interface PurchaseReturnFormData {
+  receipt_id: number;
+  reason: string;
+  notes?: string;
+  items: Array<{
+    receipt_item_id: number;
+    quantity: number;
+    return_reason: string;
+    condition_status: 'DAMAGED' | 'DEFECTIVE' | 'WRONG_ITEM' | 'EXPIRED';
   }>;
 }
 

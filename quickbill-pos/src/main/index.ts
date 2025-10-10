@@ -12,6 +12,12 @@ import { setupPrinterHandlers } from './ipc/printer.handler';
 import { setupEncryptionHandlers } from './ipc/encryption.handler';
 import { setupReturnsHandlers } from './ipc/returns.handler';
 import { setupExportHandlers } from './ipc/export.handler';
+import { registerSupplierHandlers } from './ipc/suppliers.handler';
+import { registerPurchaseOrderHandlers } from './ipc/purchase-orders.handler';
+import { registerPurchaseReceiptHandlers } from './ipc/purchase-receipts.handler';
+import { registerSupplierPaymentHandlers } from './ipc/supplier-payments.handler';
+import { registerPurchaseReturnHandlers } from './ipc/purchase-returns.handler';
+import { registerPurchaseReportHandlers } from './ipc/purchase-reports.handler';
 
 class QuickBillApp {
   private mainWindow: BrowserWindow | null = null;
@@ -37,6 +43,14 @@ class QuickBillApp {
     setupSystemHandlers();
     setupFileHandlers();
     setupEncryptionHandlers();
+    
+    // Setup purchase and supplier management handlers
+    registerSupplierHandlers();
+    registerPurchaseOrderHandlers();
+    registerPurchaseReceiptHandlers();
+    registerSupplierPaymentHandlers();
+    registerPurchaseReturnHandlers();
+    registerPurchaseReportHandlers();
 
     // Create main window
     await this.createMainWindow();

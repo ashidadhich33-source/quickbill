@@ -171,6 +171,83 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getExportHistory: () => ipcRenderer.invoke('export:getHistory'),
   deleteExportFile: (filename: string) => ipcRenderer.invoke('export:deleteFile', filename),
   cleanupExports: (daysOld?: number) => ipcRenderer.invoke('export:cleanup', daysOld),
+
+  // Suppliers API
+  getAllSuppliers: (page?: number, pageSize?: number, searchTerm?: string) => 
+    ipcRenderer.invoke('suppliers:getAll', page, pageSize, searchTerm),
+  getSupplierById: (id: number) => ipcRenderer.invoke('suppliers:getById', id),
+  createSupplier: (supplierData: any) => ipcRenderer.invoke('suppliers:create', supplierData),
+  updateSupplier: (id: number, supplierData: any) => ipcRenderer.invoke('suppliers:update', id, supplierData),
+  deleteSupplier: (id: number) => ipcRenderer.invoke('suppliers:delete', id),
+  getSupplierBalance: (supplierId: number) => ipcRenderer.invoke('suppliers:getBalance', supplierId),
+  getSuppliersForSelection: () => ipcRenderer.invoke('suppliers:getForSelection'),
+
+  // Purchase Orders API
+  getAllPurchaseOrders: (page?: number, pageSize?: number, searchTerm?: string, status?: string) => 
+    ipcRenderer.invoke('purchase-orders:getAll', page, pageSize, searchTerm, status),
+  getPurchaseOrderById: (id: number) => ipcRenderer.invoke('purchase-orders:getById', id),
+  createPurchaseOrder: (poData: any) => ipcRenderer.invoke('purchase-orders:create', poData),
+  updatePurchaseOrder: (id: number, poData: any) => ipcRenderer.invoke('purchase-orders:update', id, poData),
+  approvePurchaseOrder: (id: number) => ipcRenderer.invoke('purchase-orders:approve', id),
+  cancelPurchaseOrder: (id: number) => ipcRenderer.invoke('purchase-orders:cancel', id),
+  deletePurchaseOrder: (id: number) => ipcRenderer.invoke('purchase-orders:delete', id),
+
+  // Purchase Receipts API
+  getAllPurchaseReceipts: (page?: number, pageSize?: number, searchTerm?: string, status?: string) => 
+    ipcRenderer.invoke('purchase-receipts:getAll', page, pageSize, searchTerm, status),
+  getPurchaseReceiptById: (id: number) => ipcRenderer.invoke('purchase-receipts:getById', id),
+  createPurchaseReceipt: (receiptData: any) => ipcRenderer.invoke('purchase-receipts:create', receiptData),
+  verifyPurchaseReceipt: (id: number) => ipcRenderer.invoke('purchase-receipts:verify', id),
+  rejectPurchaseReceipt: (id: number, reason: string) => ipcRenderer.invoke('purchase-receipts:reject', id, reason),
+  getPurchaseReceiptsBySupplier: (supplierId: number, page?: number, pageSize?: number) => 
+    ipcRenderer.invoke('purchase-receipts:getBySupplier', supplierId, page, pageSize),
+
+  // Supplier Payments API
+  getAllSupplierPayments: (page?: number, pageSize?: number, searchTerm?: string) => 
+    ipcRenderer.invoke('supplier-payments:getAll', page, pageSize, searchTerm),
+  getSupplierPaymentById: (id: number) => ipcRenderer.invoke('supplier-payments:getById', id),
+  createSupplierPayment: (paymentData: any) => ipcRenderer.invoke('supplier-payments:create', paymentData),
+  getSupplierPaymentsBySupplier: (supplierId: number, page?: number, pageSize?: number) => 
+    ipcRenderer.invoke('supplier-payments:getBySupplier', supplierId, page, pageSize),
+  getSupplierOutstandingBalance: (supplierId: number) => ipcRenderer.invoke('supplier-payments:getOutstandingBalance', supplierId),
+  getSupplierPaymentSummary: (startDate: string, endDate: string) => 
+    ipcRenderer.invoke('supplier-payments:getSummary', startDate, endDate),
+  deleteSupplierPayment: (id: number) => ipcRenderer.invoke('supplier-payments:delete', id),
+
+  // Purchase Returns API
+  getAllPurchaseReturns: (page?: number, pageSize?: number, searchTerm?: string, status?: string) => 
+    ipcRenderer.invoke('purchase-returns:getAll', page, pageSize, searchTerm, status),
+  getPurchaseReturnById: (id: number) => ipcRenderer.invoke('purchase-returns:getById', id),
+  createPurchaseReturn: (returnData: any) => ipcRenderer.invoke('purchase-returns:create', returnData),
+  approvePurchaseReturn: (id: number) => ipcRenderer.invoke('purchase-returns:approve', id),
+  rejectPurchaseReturn: (id: number, reason: string) => ipcRenderer.invoke('purchase-returns:reject', id, reason),
+  processPurchaseReturn: (id: number) => ipcRenderer.invoke('purchase-returns:process', id),
+  getPurchaseReturnsBySupplier: (supplierId: number, page?: number, pageSize?: number) => 
+    ipcRenderer.invoke('purchase-returns:getBySupplier', supplierId, page, pageSize),
+  getAvailableReceiptsForReturn: (supplierId?: number) => 
+    ipcRenderer.invoke('purchase-returns:getAvailableReceipts', supplierId),
+  getReceiptItemsForReturn: (receiptId: number) => 
+    ipcRenderer.invoke('purchase-returns:getReceiptItems', receiptId),
+
+  // Purchase Reports API
+  getPurchaseSummary: (startDate: string, endDate: string) => 
+    ipcRenderer.invoke('purchase-reports:getSummary', startDate, endDate),
+  getTopSuppliers: (startDate: string, endDate: string, limit?: number) => 
+    ipcRenderer.invoke('purchase-reports:getTopSuppliers', startDate, endDate, limit),
+  getPurchaseOrderStatus: (startDate: string, endDate: string) => 
+    ipcRenderer.invoke('purchase-reports:getOrderStatus', startDate, endDate),
+  getMonthlyPurchaseTrends: (year: number) => 
+    ipcRenderer.invoke('purchase-reports:getMonthlyTrends', year),
+  getOutstandingBalances: () => 
+    ipcRenderer.invoke('purchase-reports:getOutstandingBalances'),
+  getPurchaseVsSales: (startDate: string, endDate: string) => 
+    ipcRenderer.invoke('purchase-reports:getPurchaseVsSales', startDate, endDate),
+  getItemWisePurchaseAnalysis: (startDate: string, endDate: string, limit?: number) => 
+    ipcRenderer.invoke('purchase-reports:getItemWiseAnalysis', startDate, endDate, limit),
+  getPurchaseReturnAnalysis: (startDate: string, endDate: string) => 
+    ipcRenderer.invoke('purchase-reports:getReturnAnalysis', startDate, endDate),
+  getPaymentAnalysis: (startDate: string, endDate: string) => 
+    ipcRenderer.invoke('purchase-reports:getPaymentAnalysis', startDate, endDate),
 });
 
 // Type definitions for the exposed API
@@ -266,6 +343,63 @@ declare global {
       // Remove listeners
       removeAllListeners: (channel: string) => void;
       removeListener: (channel: string, callback: Function) => void;
+
+      // Suppliers API
+      getAllSuppliers: (page?: number, pageSize?: number, searchTerm?: string) => Promise<any>;
+      getSupplierById: (id: number) => Promise<any>;
+      createSupplier: (supplierData: any) => Promise<any>;
+      updateSupplier: (id: number, supplierData: any) => Promise<any>;
+      deleteSupplier: (id: number) => Promise<any>;
+      getSupplierBalance: (supplierId: number) => Promise<any>;
+      getSuppliersForSelection: () => Promise<any>;
+
+      // Purchase Orders API
+      getAllPurchaseOrders: (page?: number, pageSize?: number, searchTerm?: string, status?: string) => Promise<any>;
+      getPurchaseOrderById: (id: number) => Promise<any>;
+      createPurchaseOrder: (poData: any) => Promise<any>;
+      updatePurchaseOrder: (id: number, poData: any) => Promise<any>;
+      approvePurchaseOrder: (id: number) => Promise<any>;
+      cancelPurchaseOrder: (id: number) => Promise<any>;
+      deletePurchaseOrder: (id: number) => Promise<any>;
+
+      // Purchase Receipts API
+      getAllPurchaseReceipts: (page?: number, pageSize?: number, searchTerm?: string, status?: string) => Promise<any>;
+      getPurchaseReceiptById: (id: number) => Promise<any>;
+      createPurchaseReceipt: (receiptData: any) => Promise<any>;
+      verifyPurchaseReceipt: (id: number) => Promise<any>;
+      rejectPurchaseReceipt: (id: number, reason: string) => Promise<any>;
+      getPurchaseReceiptsBySupplier: (supplierId: number, page?: number, pageSize?: number) => Promise<any>;
+
+      // Supplier Payments API
+      getAllSupplierPayments: (page?: number, pageSize?: number, searchTerm?: string) => Promise<any>;
+      getSupplierPaymentById: (id: number) => Promise<any>;
+      createSupplierPayment: (paymentData: any) => Promise<any>;
+      getSupplierPaymentsBySupplier: (supplierId: number, page?: number, pageSize?: number) => Promise<any>;
+      getSupplierOutstandingBalance: (supplierId: number) => Promise<any>;
+      getSupplierPaymentSummary: (startDate: string, endDate: string) => Promise<any>;
+      deleteSupplierPayment: (id: number) => Promise<any>;
+
+      // Purchase Returns API
+      getAllPurchaseReturns: (page?: number, pageSize?: number, searchTerm?: string, status?: string) => Promise<any>;
+      getPurchaseReturnById: (id: number) => Promise<any>;
+      createPurchaseReturn: (returnData: any) => Promise<any>;
+      approvePurchaseReturn: (id: number) => Promise<any>;
+      rejectPurchaseReturn: (id: number, reason: string) => Promise<any>;
+      processPurchaseReturn: (id: number) => Promise<any>;
+      getPurchaseReturnsBySupplier: (supplierId: number, page?: number, pageSize?: number) => Promise<any>;
+      getAvailableReceiptsForReturn: (supplierId?: number) => Promise<any>;
+      getReceiptItemsForReturn: (receiptId: number) => Promise<any>;
+
+      // Purchase Reports API
+      getPurchaseSummary: (startDate: string, endDate: string) => Promise<any>;
+      getTopSuppliers: (startDate: string, endDate: string, limit?: number) => Promise<any>;
+      getPurchaseOrderStatus: (startDate: string, endDate: string) => Promise<any>;
+      getMonthlyPurchaseTrends: (year: number) => Promise<any>;
+      getOutstandingBalances: () => Promise<any>;
+      getPurchaseVsSales: (startDate: string, endDate: string) => Promise<any>;
+      getItemWisePurchaseAnalysis: (startDate: string, endDate: string, limit?: number) => Promise<any>;
+      getPurchaseReturnAnalysis: (startDate: string, endDate: string) => Promise<any>;
+      getPaymentAnalysis: (startDate: string, endDate: string) => Promise<any>;
     };
   }
 }
