@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickBill POS - Point of Sale</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .pos-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: #001529;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .sidebar h2 {
+            color: #1890ff;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        
+        .search-section {
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #434343;
+            border-radius: 6px;
+            background: #141414;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .search-input::placeholder {
+            color: #8c8c8c;
+        }
+        
+        .category-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .category-tab {
+            padding: 6px 12px;
+            background: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .category-tab.active {
+            background: #40a9ff;
+        }
+        
+        .items-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        
+        .item-card {
+            background: #141414;
+            border: 1px solid #434343;
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .item-card:hover {
+            background: #1890ff;
+        }
+        
+        .item-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .item-price {
+            color: #52c41a;
+            font-size: 14px;
+        }
+        
+        .item-stock {
+            color: #8c8c8c;
+            font-size: 12px;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: #1890ff;
+            font-size: 24px;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .pos-content {
+            flex: 1;
+            display: flex;
+        }
+        
+        .cart-section {
+            flex: 1;
+            background: white;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .cart-header {
+            padding: 20px;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .cart-header h3 {
+            color: #333;
+        }
+        
+        .cart-items {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .item-info {
+            flex: 1;
+        }
+        
+        .item-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .item-details {
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .item-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .qty-btn {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #d9d9d9;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .qty-input {
+            width: 40px;
+            text-align: center;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            padding: 4px;
+        }
+        
+        .item-price {
+            font-weight: 600;
+            color: #1890ff;
+        }
+        
+        .cart-summary {
+            padding: 20px;
+            border-top: 1px solid #e8e8e8;
+            background: #fafafa;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .summary-total {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            border-top: 2px solid #1890ff;
+            padding-top: 8px;
+        }
+        
+        .payment-section {
+            width: 350px;
+            background: white;
+            margin: 20px 20px 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .payment-header {
+            padding: 20px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .payment-header h3 {
+            color: #333;
+        }
+        
+        .payment-content {
+            flex: 1;
+            padding: 20px;
+        }
+        
+        .customer-section {
+            margin-bottom: 20px;
+        }
+        
+        .customer-section h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .customer-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .payment-methods {
+            margin-bottom: 20px;
+        }
+        
+        .payment-methods h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .payment-option {
+            padding: 12px;
+            border: 2px solid #e8e8e8;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .payment-option.selected {
+            border-color: #1890ff;
+            background: #e6f7ff;
+        }
+        
+        .amount-section {
+            margin-bottom: 20px;
+        }
+        
+        .amount-section h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .amount-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 16px;
+            text-align: right;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .btn-large {
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .btn-success {
+            background: #52c41a;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #faad14;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="pos-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>Items</h2>
+            
+            <div class="search-section">
+                <input type="text" class="search-input" placeholder="Search items...">
+            </div>
+            
+            <div class="category-tabs">
+                <button class="category-tab active">All</button>
+                <button class="category-tab">Electronics</button>
+                <button class="category-tab">Clothing</button>
+                <button class="category-tab">Accessories</button>
+            </div>
+            
+            <div class="items-grid">
+                <div class="item-card">
+                    <div class="item-name">iPhone 15 Pro</div>
+                    <div class="item-price">₹99,999</div>
+                    <div class="item-stock">Stock: 15</div>
+                </div>
+                
+                <div class="item-card">
+                    <div class="item-name">Samsung Galaxy S24</div>
+                    <div class="item-price">₹79,999</div>
+                    <div class="item-stock">Stock: 8</div>
+                </div>
+                
+                <div class="item-card">
+                    <div class="item-name">MacBook Air M2</div>
+                    <div class="item-price">₹1,19,999</div>
+                    <div class="item-stock">Stock: 5</div>
+                </div>
+                
+                <div class="item-card">
+                    <div class="item-name">AirPods Pro</div>
+                    <div class="item-price">₹24,999</div>
+                    <div class="item-stock">Stock: 25</div>
+                </div>
+                
+                <div class="item-card">
+                    <div class="item-name">iPad Pro 12.9"</div>
+                    <div class="item-price">₹1,09,999</div>
+                    <div class="item-stock">Stock: 3</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <h1>Point of Sale</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary">Hold Bill</button>
+                    <button class="btn btn-secondary">Recall Bill</button>
+                    <button class="btn btn-primary">New Sale</button>
+                </div>
+            </div>
+            
+            <!-- POS Content -->
+            <div class="pos-content">
+                <!-- Cart Section -->
+                <div class="cart-section">
+                    <div class="cart-header">
+                        <h3>Current Sale</h3>
+                        <span>Invoice #INV-001</span>
+                    </div>
+                    
+                    <div class="cart-items">
+                        <div class="cart-item">
+                            <div class="item-info">
+                                <div class="item-name">iPhone 15 Pro</div>
+                                <div class="item-details">₹99,999 × 1</div>
+                            </div>
+                            <div class="item-controls">
+                                <div class="quantity-controls">
+                                    <button class="qty-btn">-</button>
+                                    <input type="number" class="qty-input" value="1" min="1">
+                                    <button class="qty-btn">+</button>
+                                </div>
+                                <div class="item-price">₹99,999</div>
+                            </div>
+                        </div>
+                        
+                        <div class="cart-item">
+                            <div class="item-info">
+                                <div class="item-name">AirPods Pro</div>
+                                <div class="item-details">₹24,999 × 2</div>
+                            </div>
+                            <div class="item-controls">
+                                <div class="quantity-controls">
+                                    <button class="qty-btn">-</button>
+                                    <input type="number" class="qty-input" value="2" min="1">
+                                    <button class="qty-btn">+</button>
+                                </div>
+                                <div class="item-price">₹49,998</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cart-summary">
+                        <div class="summary-row">
+                            <span>Subtotal:</span>
+                            <span>₹1,49,997</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>GST (18%):</span>
+                            <span>₹26,999</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Discount:</span>
+                            <span>-₹5,000</span>
+                        </div>
+                        <div class="summary-row summary-total">
+                            <span>Total:</span>
+                            <span>₹1,71,996</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Section -->
+                <div class="payment-section">
+                    <div class="payment-header">
+                        <h3>Payment</h3>
+                    </div>
+                    
+                    <div class="payment-content">
+                        <div class="customer-section">
+                            <h4>Customer</h4>
+                            <input type="text" class="customer-input" placeholder="Search or add customer">
+                            <input type="text" class="customer-input" placeholder="Customer mobile number">
+                        </div>
+                        
+                        <div class="payment-methods">
+                            <h4>Payment Method</h4>
+                            <div class="payment-options">
+                                <div class="payment-option selected">Cash</div>
+                                <div class="payment-option">Card</div>
+                                <div class="payment-option">UPI</div>
+                                <div class="payment-option">Credit</div>
+                            </div>
+                        </div>
+                        
+                        <div class="amount-section">
+                            <h4>Amount Received</h4>
+                            <input type="number" class="amount-input" placeholder="0.00" value="171996">
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-warning btn-large">Hold Bill</button>
+                            <button class="btn btn-success btn-large">Complete Sale</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

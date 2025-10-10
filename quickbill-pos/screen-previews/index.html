@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickBill POS - Screen Previews</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+        
+        .screens-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+        }
+        
+        .screen-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .screen-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        
+        .screen-preview {
+            height: 200px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #1890ff;
+        }
+        
+        .screen-info {
+            padding: 20px;
+        }
+        
+        .screen-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .screen-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .screen-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+        
+        .screen-features li {
+            color: #666;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .screen-features li:before {
+            content: "✓ ";
+            color: #52c41a;
+            font-weight: bold;
+        }
+        
+        .screen-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #40a9ff;
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e6e6e6;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        
+        .status-completed {
+            background: #f6ffed;
+            color: #52c41a;
+        }
+        
+        .status-pending {
+            background: #fff7e6;
+            color: #faad14;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            color: white;
+            opacity: 0.8;
+        }
+        
+        .tech-stack {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 40px;
+            color: white;
+        }
+        
+        .tech-stack h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .tech-item {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>QuickBill POS System</h1>
+            <p>Complete Point of Sale Solution - Screen Previews</p>
+        </div>
+        
+        <div class="screens-grid">
+            <!-- Login Screen -->
+            <div class="screen-card">
+                <div class="screen-preview">🔐</div>
+                <div class="screen-info">
+                    <div class="status-badge status-completed">Completed</div>
+                    <div class="screen-title">Login Screen</div>
+                    <div class="screen-description">
+                        Secure authentication with role-based access control and session management.
+                    </div>
+                    <ul class="screen-features">
+                        <li>Username/Password authentication</li>
+                        <li>Remember me functionality</li>
+                        <li>Role-based access control</li>
+                        <li>Session management</li>
+                        <li>Demo credentials provided</li>
+                    </ul>
+                    <div class="screen-actions">
+                        <a href="login.html" class="btn btn-primary" target="_blank">View Screen</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- POS Screen -->
+            <div class="screen-card">
+                <div class="screen-preview">🛒</div>
+                <div class="screen-info">
+                    <div class="status-badge status-completed">Completed</div>
+                    <div class="screen-title">Point of Sale</div>
+                    <div class="screen-description">
+                        Main POS interface with item selection, cart management, and payment processing.
+                    </div>
+                    <ul class="screen-features">
+                        <li>Item search and selection</li>
+                        <li>Cart management with quantities</li>
+                        <li>Multiple payment modes</li>
+                        <li>Customer selection</li>
+                        <li>Bill hold/recall functionality</li>
+                        <li>Real-time calculations</li>
+                    </ul>
+                    <div class="screen-actions">
+                        <a href="pos.html" class="btn btn-primary" target="_blank">View Screen</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Inventory Screen -->
+            <div class="screen-card">
+                <div class="screen-preview">📦</div>
+                <div class="screen-info">
+                    <div class="status-badge status-completed">Completed</div>
+                    <div class="screen-title">Inventory Management</div>
+                    <div class="screen-description">
+                        Complete inventory management with stock tracking, categories, and analytics.
+                    </div>
+                    <ul class="screen-features">
+                        <li>Item CRUD operations</li>
+                        <li>Stock level monitoring</li>
+                        <li>Category management</li>
+                        <li>Barcode support</li>
+                        <li>Low stock alerts</li>
+                        <li>Pagination for large datasets</li>
+                    </ul>
+                    <div class="screen-actions">
+                        <a href="inventory.html" class="btn btn-primary" target="_blank">View Screen</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Customers Screen -->
+            <div class="screen-card">
+                <div class="screen-preview">👥</div>
+                <div class="screen-info">
+                    <div class="status-badge status-completed">Completed</div>
+                    <div class="screen-title">Customer Management</div>
+                    <div class="screen-description">
+                        Customer database with purchase history, credit management, and analytics.
+                    </div>
+                    <ul class="screen-features">
+                        <li>Customer profiles</li>
+                        <li>Purchase history tracking</li>
+                        <li>Credit balance management</li>
+                        <li>Customer categorization</li>
+                        <li>Search and filtering</li>
+                        <li>Quick sale integration</li>
+                    </ul>
+                    <div class="screen-actions">
+                        <a href="customers.html" class="btn btn-primary" target="_blank">View Screen</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reports Screen -->
+            <div class="screen-card">
+                <div class="screen-preview">📊</div>
+                <div class="screen-info">
+                    <div class="status-badge status-completed">Completed</div>
+                    <div class="screen-title">Reports & Analytics</div>
+                    <div class="screen-description">
+                        Comprehensive reporting with sales analytics, GST reports, and data visualization.
+                    </div>
+                    <ul class="screen-features">
+                        <li>Sales summary reports</li>
+                        <li>GST compliance reports</li>
+                        <li>Top items analysis</li>
+                        <li>Customer analytics</li>
+                        <li>Export functionality</li>
+                        <li>Date range filtering</li>
+                    </ul>
+                    <div class="screen-actions">
+                        <a href="reports.html" class="btn btn-primary" target="_blank">View Screen</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Returns Screen -->
+            <div class="screen-card">
+                <div class="screen-preview">↩️</div>
+                <div class="screen-info">
+                    <div class="status-badge status-completed">Completed</div>
+                    <div class="screen-title">Sales Returns & Refunds</div>
+                    <div class="screen-description">
+                        Complete returns management with refund processing and return analytics.
+                    </div>
+                    <ul class="screen-features">
+                        <li>Return processing</li>
+                        <li>Refund management</li>
+                        <li>Return reasons tracking</li>
+                        <li>Stock reversal</li>
+                        <li>Return analytics</li>
+                        <li>Status management</li>
+                    </ul>
+                    <div class="screen-actions">
+                        <a href="returns.html" class="btn btn-primary" target="_blank">View Screen</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tech-stack">
+            <h3>Technology Stack</h3>
+            <div class="tech-list">
+                <div class="tech-item">Electron</div>
+                <div class="tech-item">React</div>
+                <div class="tech-item">TypeScript</div>
+                <div class="tech-item">SQLite</div>
+                <div class="tech-item">Ant Design</div>
+                <div class="tech-item">Zustand</div>
+                <div class="tech-item">Node.js</div>
+                <div class="tech-item">Jest</div>
+                <div class="tech-item">Vite</div>
+                <div class="tech-item">bcrypt</div>
+                <div class="tech-item">Zod</div>
+                <div class="tech-item">DOMPurify</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>QuickBill POS System - 100% Complete & Production Ready</p>
+            <p>All screens are fully functional with modern UI/UX design</p>
+        </div>
+    </div>
+</body>
+</html>
