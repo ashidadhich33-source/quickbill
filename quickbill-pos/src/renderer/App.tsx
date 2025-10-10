@@ -7,6 +7,10 @@ import { CustomersScreen } from './pages/customers/CustomersScreen';
 import { ReportsScreen } from './pages/reports/ReportsScreen';
 import { ReturnsScreen } from './pages/returns/ReturnsScreen';
 import { LoginScreen } from './pages/auth/LoginScreen';
+import SuppliersScreen from './pages/suppliers/SuppliersScreen';
+import PurchaseOrdersScreen from './pages/purchase-orders/PurchaseOrdersScreen';
+import PurchaseReceiptsScreen from './pages/purchase-receipts/PurchaseReceiptsScreen';
+import SupplierPaymentsScreen from './pages/supplier-payments/SupplierPaymentsScreen';
 import { AppLayout } from './components/common/AppLayout';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import POSErrorBoundary from './components/common/POSErrorBoundary';
@@ -72,6 +76,34 @@ const App: React.FC = () => {
               <ProtectedRoute requiredRole="MANAGER">
                 <AppLayout>
                   <ReturnsScreen />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/suppliers" element={
+              <ProtectedRoute requiredRole="MANAGER">
+                <AppLayout>
+                  <SuppliersScreen />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/purchase-orders" element={
+              <ProtectedRoute requiredRole="MANAGER">
+                <AppLayout>
+                  <PurchaseOrdersScreen />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/purchase-receipts" element={
+              <ProtectedRoute requiredRole="MANAGER">
+                <AppLayout>
+                  <PurchaseReceiptsScreen />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/supplier-payments" element={
+              <ProtectedRoute requiredRole="MANAGER">
+                <AppLayout>
+                  <SupplierPaymentsScreen />
                 </AppLayout>
               </ProtectedRoute>
             } />

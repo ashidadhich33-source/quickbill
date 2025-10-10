@@ -4,7 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingCartOutlined, DatabaseOutlined, UserOutlined,
   BarChartOutlined, UndoOutlined, SettingOutlined, LogoutOutlined,
-  MenuFoldOutlined, MenuUnfoldOutlined, BellOutlined
+  MenuFoldOutlined, MenuUnfoldOutlined, BellOutlined,
+  ShopOutlined, FileTextOutlined, InboxOutlined, DollarOutlined
 } from '@ant-design/icons';
 import { useAppStore } from '../../store/app.store';
 import { useAuthStore } from '../../store/auth.store';
@@ -43,6 +44,36 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       key: '/returns',
       icon: <UndoOutlined />,
       label: 'Returns',
+    },
+    {
+      type: 'divider' as const,
+    },
+    {
+      key: 'purchase-management',
+      icon: <ShopOutlined />,
+      label: 'Purchase Management',
+      children: [
+        {
+          key: '/suppliers',
+          icon: <UserOutlined />,
+          label: 'Suppliers',
+        },
+        {
+          key: '/purchase-orders',
+          icon: <FileTextOutlined />,
+          label: 'Purchase Orders',
+        },
+        {
+          key: '/purchase-receipts',
+          icon: <InboxOutlined />,
+          label: 'Purchase Receipts',
+        },
+        {
+          key: '/supplier-payments',
+          icon: <DollarOutlined />,
+          label: 'Supplier Payments',
+        },
+      ],
     },
     {
       key: '/reports',
