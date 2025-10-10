@@ -30,7 +30,9 @@
   "author": "QuickBill Team",
   "license": "MIT",
   "devDependencies": {
+    "@types/dompurify": "^3.0.2",
     "@types/jest": "^29.5.8",
+    "@types/lodash": "^4.14.195",
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
@@ -58,6 +60,8 @@
     "antd": "^5.12.8",
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^9.2.2",
+    "dompurify": "^3.0.5",
+    "lodash": "^4.17.21",
     "papaparse": "^5.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

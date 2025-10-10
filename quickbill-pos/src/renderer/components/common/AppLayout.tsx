@@ -3,7 +3,7 @@ import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, message } fr
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingCartOutlined, DatabaseOutlined, UserOutlined,
-  BarChartOutlined, SettingOutlined, LogoutOutlined,
+  BarChartOutlined, UndoOutlined, SettingOutlined, LogoutOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined, BellOutlined
 } from '@ant-design/icons';
 import { useAppStore } from '../../store/app.store';
@@ -38,6 +38,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       key: '/customers',
       icon: <UserOutlined />,
       label: 'Customers',
+    },
+    {
+      key: '/returns',
+      icon: <UndoOutlined />,
+      label: 'Returns',
     },
     {
       key: '/reports',

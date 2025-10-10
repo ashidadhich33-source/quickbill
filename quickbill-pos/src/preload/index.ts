@@ -144,6 +144,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
   decryptFile: (filePath: string, outputPath: string, password?: string) => ipcRenderer.invoke('encryption:decryptFile', filePath, outputPath, password),
   getEncryptionStatus: () => ipcRenderer.invoke('encryption:getStatus'),
   rotateKey: (newPassword?: string) => ipcRenderer.invoke('encryption:rotateKey', newPassword),
+
+  // Returns API
+  createReturn: (returnData: any) => ipcRenderer.invoke('returns:create', returnData),
+  getReturnById: (returnId: number) => ipcRenderer.invoke('returns:getById', returnId),
+  getReturnsByDateRange: (startDate: string, endDate: string) => ipcRenderer.invoke('returns:getByDateRange', startDate, endDate),
+  getAllReturns: (limit?: number, offset?: number) => ipcRenderer.invoke('returns:getAll', limit, offset),
+  getReturnStatistics: (startDate: string, endDate: string) => ipcRenderer.invoke('returns:getStatistics', startDate, endDate),
+  getOriginalSale: (saleId: number) => ipcRenderer.invoke('returns:getOriginalSale', saleId),
+  updateReturnStatus: (returnId: number, status: string) => ipcRenderer.invoke('returns:updateStatus', returnId, status),
+  deleteReturn: (returnId: number) => ipcRenderer.invoke('returns:delete', returnId),
+  getReturnItems: (returnId: number) => ipcRenderer.invoke('returns:getItems', returnId),
+
+  // Export API
+  exportItems: (options: any) => ipcRenderer.invoke('export:items', options),
+  exportCustomers: (options: any) => ipcRenderer.invoke('export:customers', options),
+  exportSales: (options: any) => ipcRenderer.invoke('export:sales', options),
+  exportReturns: (options: any) => ipcRenderer.invoke('export:returns', options),
+  exportReports: (reportType: string, reportData: any[], options: any) => 
+    ipcRenderer.invoke('export:reports', reportType, reportData, options),
+  exportSalesSummary: (startDate: string, endDate: string, options: any) => 
+    ipcRenderer.invoke('export:salesSummary', startDate, endDate, options),
+  exportGSTReport: (startDate: string, endDate: string, options: any) => 
+    ipcRenderer.invoke('export:gstReport', startDate, endDate, options),
+  exportInventoryReport: (options: any) => ipcRenderer.invoke('export:inventoryReport', options),
+  getExportHistory: () => ipcRenderer.invoke('export:getHistory'),
+  deleteExportFile: (filename: string) => ipcRenderer.invoke('export:deleteFile', filename),
+  cleanupExports: (daysOld?: number) => ipcRenderer.invoke('export:cleanup', daysOld),
 });
 
 // Type definitions for the exposed API

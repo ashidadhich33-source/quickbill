@@ -5,6 +5,7 @@ import { POSScreen } from './pages/pos/POSScreen';
 import { InventoryScreen } from './pages/inventory/InventoryScreen';
 import { CustomersScreen } from './pages/customers/CustomersScreen';
 import { ReportsScreen } from './pages/reports/ReportsScreen';
+import { ReturnsScreen } from './pages/returns/ReturnsScreen';
 import { LoginScreen } from './pages/auth/LoginScreen';
 import { AppLayout } from './components/common/AppLayout';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -64,6 +65,13 @@ const App: React.FC = () => {
               <ProtectedRoute requiredRole="MANAGER">
                 <AppLayout>
                   <ReportsScreen />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/returns" element={
+              <ProtectedRoute requiredRole="MANAGER">
+                <AppLayout>
+                  <ReturnsScreen />
                 </AppLayout>
               </ProtectedRoute>
             } />

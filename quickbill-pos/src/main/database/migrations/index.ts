@@ -187,6 +187,49 @@ export function runMigrations(db: Database.Database): void {
     )
   `);
 
+  // Create sales_returns table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sales_returns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_number VARCHAR(30) UNIQUE NOT NULL,
+      original_sale_id INTEGER NOT NULL,
+      return_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+      customer_id INTEGER,
+      customer_name VARCHAR(100),
+      customer_mobile VARCHAR(15),
+      reason TEXT,
+      return_amount DECIMAL(12, 2) NOT NULL,
+      refund_amount DECIMAL(12, 2) NOT NULL,
+      refund_mode VARCHAR(20) DEFAULT 'CASH',
+      status VARCHAR(20) DEFAULT 'COMPLETED',
+      processed_by INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (original_sale_id) REFERENCES sales(id),
+      FOREIGN KEY (customer_id) REFERENCES customers(id),
+      FOREIGN KEY (processed_by) REFERENCES users(id)
+    )
+  `);
+
+  // Create sales_return_items table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sales_return_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_id INTEGER NOT NULL,
+      original_item_id INTEGER NOT NULL,
+      item_id INTEGER NOT NULL,
+      barcode VARCHAR(20),
+      item_name TEXT NOT NULL,
+      quantity DECIMAL(10, 3) NOT NULL,
+      unit_price DECIMAL(10, 2) NOT NULL,
+      return_reason TEXT,
+      condition_status VARCHAR(20) DEFAULT 'GOOD',
+      refund_amount DECIMAL(10, 2) NOT NULL,
+      FOREIGN KEY (return_id) REFERENCES sales_returns(id),
+      FOREIGN KEY (original_item_id) REFERENCES sales_items(id),
+      FOREIGN KEY (item_id) REFERENCES items(id)
+    )
+  `);
+
   // Create audit_log table
   db.exec(`
     CREATE TABLE IF NOT EXISTS audit_log (
@@ -270,4 +313,10 @@ function createIndexes(db: Database.Database): void {
   db.exec('CREATE INDEX IF NOT EXISTS idx_holds_hold_id ON holds(hold_id)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_holds_user ON holds(user_id)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_holds_expires ON holds(expires_at)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_returns_number ON sales_returns(return_number)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_returns_sale ON sales_returns(original_sale_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_returns_customer ON sales_returns(customer_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_returns_date ON sales_returns(return_date)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_return_items_return ON sales_return_items(return_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_return_items_item ON sales_return_items(item_id)');
 }

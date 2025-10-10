@@ -10,6 +10,8 @@ import { setupFileHandlers } from './ipc/file.handler';
 import { setupAuthHandlers } from './ipc/auth.handler';
 import { setupPrinterHandlers } from './ipc/printer.handler';
 import { setupEncryptionHandlers } from './ipc/encryption.handler';
+import { setupReturnsHandlers } from './ipc/returns.handler';
+import { setupExportHandlers } from './ipc/export.handler';
 
 class QuickBillApp {
   private mainWindow: BrowserWindow | null = null;
@@ -30,6 +32,8 @@ class QuickBillApp {
     // Setup additional handlers
     setupAuthHandlers(this.dbManager);
     setupReportsHandlers(this.dbManager);
+    setupReturnsHandlers(this.dbManager);
+    setupExportHandlers(this.dbManager);
     setupSystemHandlers();
     setupFileHandlers();
     setupEncryptionHandlers();
