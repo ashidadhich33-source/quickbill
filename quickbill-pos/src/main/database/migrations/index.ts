@@ -372,6 +372,53 @@ export function runMigrations(db: Database.Database): void {
     )
   `);
 
+  // Create purchase_returns table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_returns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_number VARCHAR(30) UNIQUE NOT NULL,
+      return_date DATE NOT NULL,
+      receipt_id INTEGER NOT NULL,
+      supplier_id INTEGER NOT NULL,
+      supplier_name VARCHAR(200) NOT NULL,
+      reason TEXT NOT NULL,
+      subtotal DECIMAL(12, 2) NOT NULL,
+      tax_amount DECIMAL(10, 2) NOT NULL,
+      total_amount DECIMAL(12, 2) NOT NULL,
+      status VARCHAR(20) DEFAULT 'PENDING',
+      notes TEXT,
+      processed_by INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (receipt_id) REFERENCES purchase_receipts(id),
+      FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+      FOREIGN KEY (processed_by) REFERENCES users(id)
+    )
+  `);
+
+  // Create purchase_return_items table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_return_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_id INTEGER NOT NULL,
+      receipt_item_id INTEGER NOT NULL,
+      item_id INTEGER NOT NULL,
+      item_name TEXT NOT NULL,
+      quantity DECIMAL(10, 3) NOT NULL,
+      unit_price DECIMAL(10, 2) NOT NULL,
+      tax_percent DECIMAL(5, 2) NOT NULL,
+      tax_amount DECIMAL(10, 2) NOT NULL,
+      total_amount DECIMAL(12, 2) NOT NULL,
+      return_reason TEXT NOT NULL,
+      condition_status VARCHAR(20) DEFAULT 'DAMAGED',
+      batch_number VARCHAR(50),
+      expiry_date DATE,
+      FOREIGN KEY (return_id) REFERENCES purchase_returns(id),
+      FOREIGN KEY (receipt_item_id) REFERENCES purchase_receipt_items(id),
+      FOREIGN KEY (item_id) REFERENCES items(id)
+    )
+  `);
+
   // Create audit_log table
   db.exec(`
     CREATE TABLE IF NOT EXISTS audit_log (
@@ -487,4 +534,13 @@ function createIndexes(db: Database.Database): void {
   db.exec('CREATE INDEX IF NOT EXISTS idx_supplier_payments_number ON supplier_payments(payment_number)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_supplier_payments_supplier ON supplier_payments(supplier_id)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_supplier_payments_date ON supplier_payments(payment_date)');
+  
+  // Purchase Return indexes
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_returns_number ON purchase_returns(return_number)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_returns_receipt ON purchase_returns(receipt_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_returns_supplier ON purchase_returns(supplier_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_returns_date ON purchase_returns(return_date)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_returns_status ON purchase_returns(status)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_return_items_return ON purchase_return_items(return_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_purchase_return_items_item ON purchase_return_items(item_id)');
 }

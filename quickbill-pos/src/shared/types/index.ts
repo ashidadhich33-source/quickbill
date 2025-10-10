@@ -166,6 +166,42 @@ export interface SupplierPayment {
   created_at: string;
 }
 
+export interface PurchaseReturn {
+  id: number;
+  return_number: string;
+  return_date: string;
+  receipt_id: number;
+  supplier_id: number;
+  supplier_name: string;
+  reason: string;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSED';
+  notes?: string;
+  processed_by: number;
+  created_at: string;
+  updated_at: string;
+  items?: PurchaseReturnItem[];
+}
+
+export interface PurchaseReturnItem {
+  id: number;
+  return_id: number;
+  receipt_item_id: number;
+  item_id: number;
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  tax_percent: number;
+  tax_amount: number;
+  total_amount: number;
+  return_reason: string;
+  condition_status: 'DAMAGED' | 'DEFECTIVE' | 'WRONG_ITEM' | 'EXPIRED';
+  batch_number?: string;
+  expiry_date?: string;
+}
+
 export interface Sale {
   id: number;
   invoice_number: string;
@@ -446,6 +482,18 @@ export interface SupplierPaymentFormData {
   reference_number?: string;
   notes?: string;
   receipt_ids?: number[];
+}
+
+export interface PurchaseReturnFormData {
+  receipt_id: number;
+  reason: string;
+  notes?: string;
+  items: Array<{
+    receipt_item_id: number;
+    quantity: number;
+    return_reason: string;
+    condition_status: 'DAMAGED' | 'DEFECTIVE' | 'WRONG_ITEM' | 'EXPIRED';
+  }>;
 }
 
 // Search and Filter Types

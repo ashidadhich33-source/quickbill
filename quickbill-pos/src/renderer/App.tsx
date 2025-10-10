@@ -11,6 +11,8 @@ import SuppliersScreen from './pages/suppliers/SuppliersScreen';
 import PurchaseOrdersScreen from './pages/purchase-orders/PurchaseOrdersScreen';
 import PurchaseReceiptsScreen from './pages/purchase-receipts/PurchaseReceiptsScreen';
 import SupplierPaymentsScreen from './pages/supplier-payments/SupplierPaymentsScreen';
+import PurchaseReturnsScreen from './pages/purchase-returns/PurchaseReturnsScreen';
+import PurchaseReportsScreen from './pages/purchase-reports/PurchaseReportsScreen';
 import { AppLayout } from './components/common/AppLayout';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import POSErrorBoundary from './components/common/POSErrorBoundary';
@@ -104,6 +106,20 @@ const App: React.FC = () => {
               <ProtectedRoute requiredRole="MANAGER">
                 <AppLayout>
                   <SupplierPaymentsScreen />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/purchase-returns" element={
+              <ProtectedRoute requiredRole="MANAGER">
+                <AppLayout>
+                  <PurchaseReturnsScreen />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/purchase-reports" element={
+              <ProtectedRoute requiredRole="MANAGER">
+                <AppLayout>
+                  <PurchaseReportsScreen />
                 </AppLayout>
               </ProtectedRoute>
             } />

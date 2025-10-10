@@ -16,6 +16,8 @@ import { registerSupplierHandlers } from './ipc/suppliers.handler';
 import { registerPurchaseOrderHandlers } from './ipc/purchase-orders.handler';
 import { registerPurchaseReceiptHandlers } from './ipc/purchase-receipts.handler';
 import { registerSupplierPaymentHandlers } from './ipc/supplier-payments.handler';
+import { registerPurchaseReturnHandlers } from './ipc/purchase-returns.handler';
+import { registerPurchaseReportHandlers } from './ipc/purchase-reports.handler';
 
 class QuickBillApp {
   private mainWindow: BrowserWindow | null = null;
@@ -47,6 +49,8 @@ class QuickBillApp {
     registerPurchaseOrderHandlers();
     registerPurchaseReceiptHandlers();
     registerSupplierPaymentHandlers();
+    registerPurchaseReturnHandlers();
+    registerPurchaseReportHandlers();
 
     // Create main window
     await this.createMainWindow();

@@ -5,7 +5,8 @@ import {
   ShoppingCartOutlined, DatabaseOutlined, UserOutlined,
   BarChartOutlined, UndoOutlined, SettingOutlined, LogoutOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined, BellOutlined,
-  ShopOutlined, FileTextOutlined, InboxOutlined, DollarOutlined
+  ShopOutlined, FileTextOutlined, InboxOutlined, DollarOutlined,
+  RollbackOutlined, LineChartOutlined
 } from '@ant-design/icons';
 import { useAppStore } from '../../store/app.store';
 import { useAuthStore } from '../../store/auth.store';
@@ -73,12 +74,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           icon: <DollarOutlined />,
           label: 'Supplier Payments',
         },
+        {
+          key: '/purchase-returns',
+          icon: <RollbackOutlined />,
+          label: 'Purchase Returns',
+        },
       ],
+    },
+    {
+      key: '/purchase-reports',
+      icon: <LineChartOutlined />,
+      label: 'Purchase Reports',
     },
     {
       key: '/reports',
       icon: <BarChartOutlined />,
-      label: 'Reports',
+      label: 'Sales Reports',
     },
   ];
 
