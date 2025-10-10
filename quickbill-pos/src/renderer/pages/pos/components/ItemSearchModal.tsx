@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Modal, Input, Table, Button, Space, Tag, message, Spin, Empty
+  Modal, Input, Button, Space, Tag, message, Spin, Empty, List, Row, Col, Typography
 } from 'antd';
+import { FixedSizeList as List as VirtualList } from 'react-window';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
 
 interface Item {
@@ -36,6 +37,7 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -45,12 +47,21 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
         loadItems();
       }
     }
-  }, [visible, categoryFilter]);
+  }, [visible, categoryFilter, loadItems]);
 
-  const loadItems = async () => {
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
+
+  const loadItems = useCallback(async (search: string = '') => {
     setLoading(true);
     try {
-      const result = await window.electronAPI.searchItems(searchTerm || '');
+      const result = await window.electronAPI.searchItems(search);
       if (result.success) {
         setItems(result.data || []);
       } else {
@@ -61,7 +72,7 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const loadItemsByCategory = async (category: string) => {
     setLoading(true);
@@ -79,9 +90,27 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
     }
   };
 
-  const handleSearch = () => {
-    loadItems();
-  };
+  // Debounced search
+  const debouncedSearch = useCallback((search: string) => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      loadItems(search);
+    }, 300);
+    
+    setSearchTimeout(timeout);
+  }, [loadItems, searchTimeout]);
+
+  const handleSearch = useCallback(() => {
+    loadItems(searchTerm);
+  }, [loadItems, searchTerm]);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+    debouncedSearch(value);
+  }, [debouncedSearch]);
 
   const handleSelectItem = (item: Item) => {
     onSelectItem(item);
@@ -104,99 +133,116 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
     onClose();
   };
 
-  const columns = [
-    {
-      title: 'Brand',
-      dataIndex: 'brand',
-      key: 'brand',
-      width: 120,
-      sorter: (a: Item, b: Item) => a.brand.localeCompare(b.brand),
-    },
-    {
-      title: 'Description',
-      dataIndex: 'item_description',
-      key: 'item_description',
-      ellipsis: true,
-      sorter: (a: Item, b: Item) => a.item_description.localeCompare(b.item_description),
-    },
-    {
-      title: 'Size',
-      dataIndex: 'size',
-      key: 'size',
-      width: 80,
-    },
-    {
-      title: 'Shade',
-      dataIndex: 'shade',
-      key: 'shade',
-      width: 100,
-    },
-    {
-      title: 'Barcode',
-      dataIndex: 'barcode',
-      key: 'barcode',
-      width: 120,
-    },
-    {
-      title: 'MRP',
-      dataIndex: 'mrp',
-      key: 'mrp',
-      width: 100,
-      render: (price: number) => `₹${price.toFixed(2)}`,
-      sorter: (a: Item, b: Item) => a.mrp - b.mrp,
-    },
-    {
-      title: 'Stock',
-      dataIndex: 'current_stock',
-      key: 'current_stock',
-      width: 80,
-      render: (stock: number) => (
-        <Tag color={stock > 0 ? 'green' : 'red'}>
-          {stock}
-        </Tag>
-      ),
-      sorter: (a: Item, b: Item) => a.current_stock - b.current_stock,
-    },
-    {
-      title: 'GST%',
-      dataIndex: 'gst_percentage',
-      key: 'gst_percentage',
-      width: 80,
-      render: (gst: number) => `${gst}%`,
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      width: 80,
-      render: (_: any, record: Item) => (
-        <Button
-          type="primary"
-          size="small"
-          icon={<PlusOutlined />}
-          onClick={() => handleSelectItem(record)}
-        >
-          Add
-        </Button>
-      ),
-    },
-  ];
+  // Virtual list item renderer
+  const ItemRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const item = items[index];
+    if (!item) return null;
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (newSelectedRowKeys: React.Key[]) => {
-      setSelectedRowKeys(newSelectedRowKeys);
-    },
-    getCheckboxProps: (record: Item) => ({
-      disabled: record.current_stock === 0,
-    }),
-  };
+    const isSelected = selectedRowKeys.includes(item.id);
+    const isOutOfStock = item.current_stock === 0;
+
+    return (
+      <div style={style}>
+        <Row
+          align="middle"
+          style={{
+            padding: '8px 16px',
+            borderBottom: '1px solid #f0f0f0',
+            backgroundColor: isSelected ? '#e6f7ff' : 'white',
+            cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+            opacity: isOutOfStock ? 0.6 : 1
+          }}
+          onClick={() => !isOutOfStock && handleSelectItem(item)}
+        >
+          <Col span={1}>
+            <input
+              type="checkbox"
+              checked={isSelected}
+              disabled={isOutOfStock}
+              onChange={(e) => {
+                e.stopPropagation();
+                if (isSelected) {
+                  setSelectedRowKeys(prev => prev.filter(key => key !== item.id));
+                } else {
+                  setSelectedRowKeys(prev => [...prev, item.id]);
+                }
+              }}
+            />
+          </Col>
+          <Col span={4}>
+            <Typography.Text strong>{item.brand}</Typography.Text>
+          </Col>
+          <Col span={6}>
+            <Typography.Text ellipsis={{ tooltip: item.item_description }}>
+              {item.item_description}
+            </Typography.Text>
+          </Col>
+          <Col span={2}>
+            <Typography.Text>{item.size || '-'}</Typography.Text>
+          </Col>
+          <Col span={2}>
+            <Typography.Text>{item.shade || '-'}</Typography.Text>
+          </Col>
+          <Col span={3}>
+            <Typography.Text code>{item.barcode || '-'}</Typography.Text>
+          </Col>
+          <Col span={2}>
+            <Typography.Text strong>₹{item.mrp.toFixed(2)}</Typography.Text>
+          </Col>
+          <Col span={2}>
+            <Tag color={item.current_stock > 0 ? 'green' : 'red'}>
+              {item.current_stock}
+            </Tag>
+          </Col>
+          <Col span={1}>
+            <Typography.Text>{item.gst_percentage}%</Typography.Text>
+          </Col>
+          <Col span={1}>
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              disabled={isOutOfStock}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelectItem(item);
+              }}
+            />
+          </Col>
+        </Row>
+      </div>
+    );
+  }, [items, selectedRowKeys, handleSelectItem]);
+
+  // Header row for virtual list
+  const HeaderRow = useMemo(() => (
+    <Row
+      style={{
+        padding: '8px 16px',
+        backgroundColor: '#fafafa',
+        borderBottom: '2px solid #d9d9d9',
+        fontWeight: 'bold'
+      }}
+    >
+      <Col span={1}>Select</Col>
+      <Col span={4}>Brand</Col>
+      <Col span={6}>Description</Col>
+      <Col span={2}>Size</Col>
+      <Col span={2}>Shade</Col>
+      <Col span={3}>Barcode</Col>
+      <Col span={2}>MRP</Col>
+      <Col span={2}>Stock</Col>
+      <Col span={1}>GST%</Col>
+      <Col span={1}>Action</Col>
+    </Row>
+  ), []);
 
   return (
     <Modal
       title="Search Items"
       open={visible}
       onCancel={onClose}
-      width={1000}
+      width={1200}
       footer={[
         <Button key="cancel" onClick={onClose}>
           Cancel
@@ -216,7 +262,7 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
           <Input
             placeholder="Search by brand, description, or barcode"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             onPressEnter={handleSearch}
             prefix={<SearchOutlined />}
           />
@@ -227,31 +273,24 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
       </div>
 
       <Spin spinning={loading}>
-        <Table
-          columns={columns}
-          dataSource={items}
-          rowKey="id"
-          rowSelection={rowSelection}
-          pagination={{
-            pageSize: 20,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-          }}
-          scroll={{ y: 400 }}
-          onRow={(record) => ({
-            onDoubleClick: () => handleSelectItem(record),
-          })}
-          locale={{
-            emptyText: (
-              <Empty
-                description="No items found"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              />
-            ),
-          }}
-        />
+        {items.length === 0 ? (
+          <Empty
+            description="No items found"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        ) : (
+          <div style={{ border: '1px solid #d9d9d9', borderRadius: '6px' }}>
+            {HeaderRow}
+            <VirtualList
+              height={400}
+              itemCount={items.length}
+              itemSize={50}
+              width="100%"
+            >
+              {ItemRow}
+            </VirtualList>
+          </div>
+        )}
       </Spin>
     </Modal>
   );

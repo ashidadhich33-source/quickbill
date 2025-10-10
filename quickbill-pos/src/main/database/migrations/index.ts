@@ -146,6 +146,90 @@ export function runMigrations(db: Database.Database): void {
     )
   `);
 
+  // Create users table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username VARCHAR(50) UNIQUE NOT NULL,
+      email VARCHAR(100) UNIQUE,
+      password_hash VARCHAR(255) NOT NULL,
+      full_name VARCHAR(100) NOT NULL,
+      role VARCHAR(20) DEFAULT 'CASHIER',
+      is_active BOOLEAN DEFAULT 1,
+      last_login TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create user_sessions table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      session_token VARCHAR(255) UNIQUE NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  // Create holds table for bill hold/recall
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS holds (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      hold_id VARCHAR(50) UNIQUE NOT NULL,
+      hold_data TEXT NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      expires_at TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  // Create sales_returns table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sales_returns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_number VARCHAR(30) UNIQUE NOT NULL,
+      original_sale_id INTEGER NOT NULL,
+      return_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+      customer_id INTEGER,
+      customer_name VARCHAR(100),
+      customer_mobile VARCHAR(15),
+      reason TEXT,
+      return_amount DECIMAL(12, 2) NOT NULL,
+      refund_amount DECIMAL(12, 2) NOT NULL,
+      refund_mode VARCHAR(20) DEFAULT 'CASH',
+      status VARCHAR(20) DEFAULT 'COMPLETED',
+      processed_by INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (original_sale_id) REFERENCES sales(id),
+      FOREIGN KEY (customer_id) REFERENCES customers(id),
+      FOREIGN KEY (processed_by) REFERENCES users(id)
+    )
+  `);
+
+  // Create sales_return_items table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sales_return_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      return_id INTEGER NOT NULL,
+      original_item_id INTEGER NOT NULL,
+      item_id INTEGER NOT NULL,
+      barcode VARCHAR(20),
+      item_name TEXT NOT NULL,
+      quantity DECIMAL(10, 3) NOT NULL,
+      unit_price DECIMAL(10, 2) NOT NULL,
+      return_reason TEXT,
+      condition_status VARCHAR(20) DEFAULT 'GOOD',
+      refund_amount DECIMAL(10, 2) NOT NULL,
+      FOREIGN KEY (return_id) REFERENCES sales_returns(id),
+      FOREIGN KEY (original_item_id) REFERENCES sales_items(id),
+      FOREIGN KEY (item_id) REFERENCES items(id)
+    )
+  `);
+
   // Create audit_log table
   db.exec(`
     CREATE TABLE IF NOT EXISTS audit_log (
@@ -153,7 +237,8 @@ export function runMigrations(db: Database.Database): void {
       action VARCHAR(100) NOT NULL,
       user_id INTEGER NOT NULL,
       details TEXT,
-      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
     )
   `);
 
@@ -173,6 +258,25 @@ export function runMigrations(db: Database.Database): void {
       'QuickBill POS', '', '', '', '',
       'INV', 1, '2024-04-01',
       '₹', 'DD/MM/YYYY', 'Asia/Kolkata'
+    );
+  }
+
+  // Insert default admin user if not exists
+  const userExists = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
+  if (userExists.count === 0) {
+    const bcrypt = require('bcrypt');
+    const hashedPassword = bcrypt.hashSync('admin123', 10);
+    
+    db.prepare(`
+      INSERT INTO users (
+        username, email, password_hash, full_name, role
+      ) VALUES (?, ?, ?, ?, ?)
+    `).run(
+      'admin',
+      'admin@quickbill.com',
+      hashedPassword,
+      'Administrator',
+      'ADMIN'
     );
   }
 }
@@ -196,4 +300,23 @@ function createIndexes(db: Database.Database): void {
   db.exec('CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_sales_invoice ON sales(invoice_number)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_sales_items_sales ON sales_items(sales_id)');
+
+  // User indexes
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_user_sessions_expires ON user_sessions(expires_at)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_holds_hold_id ON holds(hold_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_holds_user ON holds(user_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_holds_expires ON holds(expires_at)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_returns_number ON sales_returns(return_number)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_returns_sale ON sales_returns(original_sale_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_returns_customer ON sales_returns(customer_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_returns_date ON sales_returns(return_date)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_return_items_return ON sales_return_items(return_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sales_return_items_item ON sales_return_items(item_id)');
 }

@@ -39,6 +39,24 @@ interface CustomerAnalysis {
   last_visit: string;
 }
 
+interface GSTReport {
+  summary: {
+    totalTaxableAmount: number;
+    totalCGST: number;
+    totalSGST: number;
+    totalIGST: number;
+    totalTax: number;
+  };
+  hsnWise: Array<{
+    hsnCode: string;
+    taxableAmount: number;
+    cgst: number;
+    sgst: number;
+    igst: number;
+    rate: number;
+  }>;
+}
+
 const ReportsScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState<[any, any] | null>(null);
@@ -46,6 +64,7 @@ const ReportsScreen: React.FC = () => {
   const [salesData, setSalesData] = useState<SalesData[]>([]);
   const [topItems, setTopItems] = useState<TopItem[]>([]);
   const [customerAnalysis, setCustomerAnalysis] = useState<CustomerAnalysis[]>([]);
+  const [gstReport, setGstReport] = useState<GSTReport | null>(null);
 
   useEffect(() => {
     // Set default date range to current month
@@ -84,6 +103,12 @@ const ReportsScreen: React.FC = () => {
       const customersResult = await window.electronAPI.getCustomerAnalysis(startDate, endDate);
       if (customersResult.success) {
         setCustomerAnalysis(customersResult.data || []);
+      }
+
+      // Load GST report
+      const gstResult = await window.electronAPI.getGSTReport(startDate, endDate);
+      if (gstResult.success) {
+        setGstReport(gstResult.data || null);
       }
     } catch (error) {
       message.error('Error loading report data');
@@ -231,6 +256,45 @@ const ReportsScreen: React.FC = () => {
     },
   ];
 
+  const gstColumns = [
+    {
+      title: 'HSN Code',
+      dataIndex: 'hsnCode',
+      key: 'hsnCode',
+      render: (code: string) => <span style={{ fontFamily: 'monospace' }}>{code}</span>,
+    },
+    {
+      title: 'Taxable Amount',
+      dataIndex: 'taxableAmount',
+      key: 'taxableAmount',
+      render: (amount: number) => `₹${amount.toLocaleString()}`,
+    },
+    {
+      title: 'CGST',
+      dataIndex: 'cgst',
+      key: 'cgst',
+      render: (amount: number) => `₹${amount.toLocaleString()}`,
+    },
+    {
+      title: 'SGST',
+      dataIndex: 'sgst',
+      key: 'sgst',
+      render: (amount: number) => `₹${amount.toLocaleString()}`,
+    },
+    {
+      title: 'IGST',
+      dataIndex: 'igst',
+      key: 'igst',
+      render: (amount: number) => `₹${amount.toLocaleString()}`,
+    },
+    {
+      title: 'Rate %',
+      dataIndex: 'rate',
+      key: 'rate',
+      render: (rate: number) => `${rate}%`,
+    },
+  ];
+
   const tabItems = [
     {
       key: 'sales',
@@ -335,6 +399,96 @@ const ReportsScreen: React.FC = () => {
             />
           </Spin>
         </Card>
+      ),
+    },
+    {
+      key: 'gst',
+      label: 'GST Report',
+      children: (
+        <div>
+          {gstReport && (
+            <>
+              <Row gutter={16} style={{ marginBottom: 16 }}>
+                <Col span={6}>
+                  <Card>
+                    <Statistic 
+                      title="Total Taxable Amount" 
+                      value={gstReport.summary.totalTaxableAmount} 
+                      prefix="₹" 
+                    />
+                  </Card>
+                </Col>
+                <Col span={6}>
+                  <Card>
+                    <Statistic 
+                      title="Total CGST" 
+                      value={gstReport.summary.totalCGST} 
+                      prefix="₹" 
+                    />
+                  </Card>
+                </Col>
+                <Col span={6}>
+                  <Card>
+                    <Statistic 
+                      title="Total SGST" 
+                      value={gstReport.summary.totalSGST} 
+                      prefix="₹" 
+                    />
+                  </Card>
+                </Col>
+                <Col span={6}>
+                  <Card>
+                    <Statistic 
+                      title="Total IGST" 
+                      value={gstReport.summary.totalIGST} 
+                      prefix="₹" 
+                    />
+                  </Card>
+                </Col>
+              </Row>
+
+              <Card title="HSN-wise GST Breakdown">
+                <Spin spinning={loading}>
+                  <Table
+                    columns={gstColumns}
+                    dataSource={gstReport.hsnWise}
+                    rowKey="hsnCode"
+                    pagination={false}
+                    summary={(pageData) => {
+                      const totalTaxable = pageData.reduce((sum, item) => sum + item.taxableAmount, 0);
+                      const totalCGST = pageData.reduce((sum, item) => sum + item.cgst, 0);
+                      const totalSGST = pageData.reduce((sum, item) => sum + item.sgst, 0);
+                      const totalIGST = pageData.reduce((sum, item) => sum + item.igst, 0);
+
+                      return (
+                        <Table.Summary.Row>
+                          <Table.Summary.Cell index={0}>
+                            <strong>Total</strong>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={1}>
+                            <strong>₹{totalTaxable.toLocaleString()}</strong>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={2}>
+                            <strong>₹{totalCGST.toLocaleString()}</strong>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={3}>
+                            <strong>₹{totalSGST.toLocaleString()}</strong>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={4}>
+                            <strong>₹{totalIGST.toLocaleString()}</strong>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={5}>
+                            <strong>-</strong>
+                          </Table.Summary.Cell>
+                        </Table.Summary.Row>
+                      );
+                    }}
+                  />
+                </Spin>
+              </Card>
+            </>
+          )}
+        </div>
       ),
     },
   ];

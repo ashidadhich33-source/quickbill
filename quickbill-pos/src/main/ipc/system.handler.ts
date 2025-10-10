@@ -252,6 +252,37 @@ export function setupSystemHandlers(): void {
       return { success: false, error: error.message };
     }
   });
+
+  // Log error
+  ipcMain.handle('system:logError', async (event, errorData) => {
+    try {
+      const logPath = path.join(app.getPath('userData'), 'logs', 'error.log');
+      const logDir = path.dirname(logPath);
+      
+      // Ensure log directory exists
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        ...errorData
+      };
+      
+      // Append to error log file
+      fs.appendFileSync(logPath, JSON.stringify(logEntry) + '\n');
+      
+      // Also log to console in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Client Error:', logEntry);
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error logging client error:', error);
+      return { success: false, error: error.message };
+    }
+  });
 }
 
 // Helper function to get directory size

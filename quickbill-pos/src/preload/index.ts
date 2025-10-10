@@ -57,6 +57,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   printInvoice: (invoiceNumber: string) => ipcRenderer.invoke('sales:printInvoice', invoiceNumber),
   holdBill: (billData: any) => ipcRenderer.invoke('sales:holdBill', billData),
   recallBill: (holdId: string) => ipcRenderer.invoke('sales:recallBill', holdId),
+  getHeldBills: () => ipcRenderer.invoke('sales:getHeldBills'),
+  deleteHeldBill: (holdId: string) => ipcRenderer.invoke('sales:deleteHeldBill', holdId),
 
   // Reports API
   getSalesSummary: (startDate: string, endDate: string) => 
@@ -106,6 +108,69 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Remove listeners
   removeAllListeners: (channel: string) => ipcRenderer.removeAllListeners(channel),
   removeListener: (channel: string, callback: Function) => ipcRenderer.removeListener(channel, callback),
+
+  // Error logging
+  logError: (errorData: any) => ipcRenderer.invoke('system:logError', errorData),
+
+  // Authentication API
+  login: (credentials: any) => ipcRenderer.invoke('auth:login', credentials),
+  logout: (sessionToken: string) => ipcRenderer.invoke('auth:logout', sessionToken),
+  validateSession: (sessionToken: string) => ipcRenderer.invoke('auth:validateSession', sessionToken),
+  createUser: (userData: any) => ipcRenderer.invoke('auth:createUser', userData),
+  updateUser: (userId: number, updates: any) => ipcRenderer.invoke('auth:updateUser', userId, updates),
+  changePassword: (userId: number, currentPassword: string, newPassword: string) => 
+    ipcRenderer.invoke('auth:changePassword', userId, currentPassword, newPassword),
+  getAllUsers: () => ipcRenderer.invoke('auth:getAllUsers'),
+  getUserById: (userId: number) => ipcRenderer.invoke('auth:getUserById', userId),
+  deleteUser: (userId: number) => ipcRenderer.invoke('auth:deleteUser', userId),
+  getAuditLogs: (limit?: number, offset?: number) => ipcRenderer.invoke('auth:getAuditLogs', limit, offset),
+
+  // Printer API
+  printReceipt: (receiptData: any, config?: any) => ipcRenderer.invoke('printer:printReceipt', receiptData, config),
+  printInvoice: (invoiceData: any, config?: any) => ipcRenderer.invoke('printer:printInvoice', invoiceData, config),
+  getAvailablePrinters: () => ipcRenderer.invoke('printer:getAvailablePrinters'),
+  testPrint: (printerName: string) => ipcRenderer.invoke('printer:testPrint', printerName),
+
+  // Encryption API
+  encrypt: (text: string, password?: string) => ipcRenderer.invoke('encryption:encrypt', text, password),
+  decrypt: (encryptedData: string, password?: string) => ipcRenderer.invoke('encryption:decrypt', encryptedData, password),
+  encryptField: (value: string, fieldName: string) => ipcRenderer.invoke('encryption:encryptField', value, fieldName),
+  decryptField: (encryptedValue: string, fieldName: string) => ipcRenderer.invoke('encryption:decryptField', encryptedValue, fieldName),
+  hashPassword: (password: string) => ipcRenderer.invoke('encryption:hashPassword', password),
+  verifyPassword: (password: string, hashedPassword: string) => ipcRenderer.invoke('encryption:verifyPassword', password, hashedPassword),
+  generateToken: (length?: number) => ipcRenderer.invoke('encryption:generateToken', length),
+  generateId: () => ipcRenderer.invoke('encryption:generateId'),
+  encryptFile: (filePath: string, outputPath: string, password?: string) => ipcRenderer.invoke('encryption:encryptFile', filePath, outputPath, password),
+  decryptFile: (filePath: string, outputPath: string, password?: string) => ipcRenderer.invoke('encryption:decryptFile', filePath, outputPath, password),
+  getEncryptionStatus: () => ipcRenderer.invoke('encryption:getStatus'),
+  rotateKey: (newPassword?: string) => ipcRenderer.invoke('encryption:rotateKey', newPassword),
+
+  // Returns API
+  createReturn: (returnData: any) => ipcRenderer.invoke('returns:create', returnData),
+  getReturnById: (returnId: number) => ipcRenderer.invoke('returns:getById', returnId),
+  getReturnsByDateRange: (startDate: string, endDate: string) => ipcRenderer.invoke('returns:getByDateRange', startDate, endDate),
+  getAllReturns: (limit?: number, offset?: number) => ipcRenderer.invoke('returns:getAll', limit, offset),
+  getReturnStatistics: (startDate: string, endDate: string) => ipcRenderer.invoke('returns:getStatistics', startDate, endDate),
+  getOriginalSale: (saleId: number) => ipcRenderer.invoke('returns:getOriginalSale', saleId),
+  updateReturnStatus: (returnId: number, status: string) => ipcRenderer.invoke('returns:updateStatus', returnId, status),
+  deleteReturn: (returnId: number) => ipcRenderer.invoke('returns:delete', returnId),
+  getReturnItems: (returnId: number) => ipcRenderer.invoke('returns:getItems', returnId),
+
+  // Export API
+  exportItems: (options: any) => ipcRenderer.invoke('export:items', options),
+  exportCustomers: (options: any) => ipcRenderer.invoke('export:customers', options),
+  exportSales: (options: any) => ipcRenderer.invoke('export:sales', options),
+  exportReturns: (options: any) => ipcRenderer.invoke('export:returns', options),
+  exportReports: (reportType: string, reportData: any[], options: any) => 
+    ipcRenderer.invoke('export:reports', reportType, reportData, options),
+  exportSalesSummary: (startDate: string, endDate: string, options: any) => 
+    ipcRenderer.invoke('export:salesSummary', startDate, endDate, options),
+  exportGSTReport: (startDate: string, endDate: string, options: any) => 
+    ipcRenderer.invoke('export:gstReport', startDate, endDate, options),
+  exportInventoryReport: (options: any) => ipcRenderer.invoke('export:inventoryReport', options),
+  getExportHistory: () => ipcRenderer.invoke('export:getHistory'),
+  deleteExportFile: (filename: string) => ipcRenderer.invoke('export:deleteFile', filename),
+  cleanupExports: (daysOld?: number) => ipcRenderer.invoke('export:cleanup', daysOld),
 });
 
 // Type definitions for the exposed API

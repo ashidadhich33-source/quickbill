@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, Table, Button, Input, Space, Tag, message, Modal, Form,
   InputNumber, Select, Row, Col, Statistic, Typography, Tabs
@@ -7,6 +7,7 @@ import {
   PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined,
   ImportOutlined, ExportOutlined, WarningOutlined, ExclamationCircleOutlined
 } from '@ant-design/icons';
+import PaginatedTable from '../../components/common/PaginatedTable';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -31,6 +32,7 @@ interface Item {
 
 const InventoryScreen: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -39,17 +41,27 @@ const InventoryScreen: React.FC = () => {
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [form] = Form.useForm();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   useEffect(() => {
     loadItems();
   }, []);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async (page: number = currentPage, size: number = pageSize) => {
     setLoading(true);
     try {
+      // For now, we'll use searchItems with pagination simulation
+      // In a real implementation, you'd have a dedicated paginated endpoint
       const result = await window.electronAPI.searchItems(searchTerm);
       if (result.success) {
-        setItems(result.data || []);
+        const allItems = result.data || [];
+        const startIndex = (page - 1) * size;
+        const endIndex = startIndex + size;
+        const paginatedItems = allItems.slice(startIndex, endIndex);
+        
+        setItems(paginatedItems);
+        setTotalItems(allItems.length);
       } else {
         message.error('Error loading items');
       }
@@ -58,7 +70,13 @@ const InventoryScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, currentPage, pageSize]);
+
+  const handlePageChange = useCallback((page: number, size: number) => {
+    setCurrentPage(page);
+    setPageSize(size);
+    loadItems(page, size);
+  }, [loadItems]);
 
   const handleSearch = () => {
     loadItems();
@@ -273,20 +291,20 @@ const InventoryScreen: React.FC = () => {
       key: 'all',
       label: 'All Items',
       children: (
-        <Table
+        <PaginatedTable
           columns={columns}
-          dataSource={filteredItems}
-          rowKey="id"
-          rowSelection={rowSelection}
+          data={filteredItems}
+          total={totalItems}
+          currentPage={currentPage}
+          pageSize={pageSize}
           loading={loading}
-          pagination={{
-            pageSize: 20,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-          }}
-          scroll={{ x: 1000 }}
+          onPageChange={handlePageChange}
+          onRefresh={loadItems}
+          rowSelection={rowSelection}
+          emptyText="No items found"
+          showTotal={true}
+          showSizeChanger={true}
+          showQuickJumper={true}
         />
       ),
     },

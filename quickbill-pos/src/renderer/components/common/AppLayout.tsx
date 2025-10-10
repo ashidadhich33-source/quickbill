@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar } from 'antd';
+import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, message } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingCartOutlined, DatabaseOutlined, UserOutlined,
-  BarChartOutlined, SettingOutlined, LogoutOutlined,
+  BarChartOutlined, UndoOutlined, SettingOutlined, LogoutOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined, BellOutlined
 } from '@ant-design/icons';
 import { useAppStore } from '../../store/app.store';
+import { useAuthStore } from '../../store/auth.store';
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
@@ -19,6 +20,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, toggleTheme } = useAppStore();
+  const { user, logout } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
 
   const menuItems = [
@@ -36,6 +38,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       key: '/customers',
       icon: <UserOutlined />,
       label: 'Customers',
+    },
+    {
+      key: '/returns',
+      icon: <UndoOutlined />,
+      label: 'Returns',
     },
     {
       key: '/reports',
@@ -69,16 +76,24 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     navigate(key);
   };
 
-  const handleUserMenuClick = ({ key }: { key: string }) => {
+  const handleUserMenuClick = async ({ key }: { key: string }) => {
     switch (key) {
       case 'profile':
         // Handle profile
+        message.info('Profile feature coming soon');
         break;
       case 'settings':
         // Handle settings
+        message.info('Settings feature coming soon');
         break;
       case 'logout':
-        // Handle logout
+        try {
+          await logout();
+          message.success('Logged out successfully');
+          navigate('/login');
+        } catch (error) {
+          message.error('Logout failed');
+        }
         break;
     }
   };
@@ -164,7 +179,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             >
               <Space style={{ cursor: 'pointer' }}>
                 <Avatar icon={<UserOutlined />} />
-                <span>Admin</span>
+                <span>{user?.full_name || 'User'}</span>
               </Space>
             </Dropdown>
           </Space>
