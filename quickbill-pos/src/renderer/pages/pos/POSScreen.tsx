@@ -8,6 +8,8 @@ import {
   PrinterOutlined, SaveOutlined, CloseOutlined, ShoppingCartOutlined
 } from '@ant-design/icons';
 import { usePOSStore } from '../../store/pos.store';
+import type { CartItem, POSCatalogItem } from '../../utils/pos.utils';
+import { buildSalePayload, createCartItemFromCatalogItem, roundCurrency } from '../../utils/pos.utils';
 import { useHotkeys } from '../../hooks/useHotkeys';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import ItemSearchModal from './components/ItemSearchModal';
@@ -17,23 +19,6 @@ import './POSScreen.css';
 
 const { Title, Text } = Typography;
 
-interface CartItem {
-  id: number;
-  itemId: number;
-  barcode: string;
-  brand: string;
-  itemDescription: string;
-  size: string;
-  shade: string;
-  quantity: number;
-  mrp: number;
-  sellingPrice: number;
-  discountPercent: number;
-  discountAmount: number;
-  gstPercent: number;
-  gstAmount: number;
-  total: number;
-}
 
 const POSScreen: React.FC = () => {
   const {
@@ -86,26 +71,23 @@ const POSScreen: React.FC = () => {
     searchInputRef.current?.focus();
   }, [cart]);
 
+  const addCatalogItemToCart = useCallback((item: POSCatalogItem) => {
+    const existingItem = cart.find((cartItem) => cartItem.itemId === item.id);
+
+    if (existingItem) {
+      updateQuantity(existingItem.id, existingItem.quantity + 1);
+      return;
+    }
+
+    addToCart(createCartItemFromCatalogItem(item));
+  }, [addToCart, cart, updateQuantity]);
+
   const handleBarcodeScanned = async (barcode: string) => {
     try {
       const result = await window.electronAPI.findItemByBarcode(barcode);
       if (result.success && result.data) {
-        const item = result.data;
-        const existingItem = cart.find(i => i.barcode === barcode);
-        
-        if (existingItem) {
-          updateQuantity(existingItem.id, existingItem.quantity + 1);
-        } else {
-          addToCart({
-            ...item,
-            quantity: 1,
-            sellingPrice: item.mrp,
-            discountPercent: 0,
-            discountAmount: 0,
-            gstAmount: (item.mrp * item.gst_percentage) / 100,
-            total: item.mrp
-          });
-        }
+        const item = result.data as POSCatalogItem;
+        addCatalogItemToCart(item);
         message.success(`Added: ${item.item_description}`);
       } else {
         message.error('Item not found');
@@ -147,16 +129,23 @@ const POSScreen: React.FC = () => {
     }
 
     try {
-      const billData = {
-        customer: customer,
-        items: cart,
-        subtotal: totals.subtotal,
-        discount: totals.discount,
-        tax: totals.tax,
-        total: totals.total,
-        paymentMode: paymentMode,
-        paidAmount: receivedAmount || totals.total
-      };
+      if (paymentMode === 'CREDIT' && !customer) {
+        message.warning('Please select a customer for credit sales');
+        return;
+      }
+
+      if (receivedAmount > 0 && paymentMode !== 'CREDIT' && receivedAmount < totals.total) {
+        message.warning('Received amount cannot be less than bill total');
+        return;
+      }
+
+      const billData = buildSalePayload({
+        cart,
+        customer,
+        totals,
+        paymentMode,
+        receivedAmount,
+      });
 
       const result = await window.electronAPI.saveSale(billData);
       if (result.success) {
@@ -164,7 +153,10 @@ const POSScreen: React.FC = () => {
         printBill(result.invoiceNumber);
         clearCart();
         setCustomer(null);
+        setPaymentMode('CASH');
         setReceivedAmount(0);
+      } else {
+        message.error(result.error || 'Error saving bill');
       }
     } catch (error) {
       message.error('Error saving bill');
@@ -426,14 +418,14 @@ const POSScreen: React.FC = () => {
                 </div>
                 <div className="total-line">
                   <span>Taxable:</span>
-                  <span>₹{(totals.subtotal - totals.discount).toFixed(2)}</span>
+                  <span>₹{totals.taxable.toFixed(2)}</span>
                 </div>
                 <div className="total-line">
-                  <span>CGST (9%):</span>
+                  <span>CGST:</span>
                   <span>₹{(totals.tax / 2).toFixed(2)}</span>
                 </div>
                 <div className="total-line">
-                  <span>SGST (9%):</span>
+                  <span>SGST:</span>
                   <span>₹{(totals.tax / 2).toFixed(2)}</span>
                 </div>
                 <Divider />
@@ -483,7 +475,7 @@ const POSScreen: React.FC = () => {
                 />
                 {receivedAmount > 0 && (
                   <div style={{ marginTop: 5, textAlign: 'right' }}>
-                    <Text>Return: ₹{(receivedAmount - totals.total).toFixed(2)}</Text>
+                    <Text>Return: ₹{roundCurrency(Math.max(0, receivedAmount - totals.total)).toFixed(2)}</Text>
                   </div>
                 )}
               </div>
@@ -531,15 +523,7 @@ const POSScreen: React.FC = () => {
         visible={showItemSearch}
         onClose={() => setShowItemSearch(false)}
         onSelectItem={(item) => {
-          addToCart({
-            ...item,
-            quantity: 1,
-            sellingPrice: item.mrp,
-            discountPercent: 0,
-            discountAmount: 0,
-            gstAmount: (item.mrp * item.gst_percentage) / 100,
-            total: item.mrp
-          });
+          addCatalogItemToCart(item);
           setShowItemSearch(false);
         }}
       />

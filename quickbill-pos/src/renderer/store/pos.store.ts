@@ -1,47 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface CartItem {
-  id: number;
-  itemId: number;
-  barcode: string;
-  brand: string;
-  itemDescription: string;
-  size: string;
-  shade: string;
-  quantity: number;
-  mrp: number;
-  sellingPrice: number;
-  discountPercent: number;
-  discountAmount: number;
-  gstPercent: number;
-  gstAmount: number;
-  total: number;
-}
-
-interface Customer {
-  id: number;
-  name: string;
-  mobile: string;
-  email?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  current_balance: number;
-  loyalty_points: number;
-  customer_type: string;
-}
-
-interface Totals {
-  subtotal: number;
-  discount: number;
-  tax: number;
-  total: number;
-}
+import type { CartItem, CustomerSummary, POSTotals } from '../utils/pos.utils';
+import { calculateCartTotals, recalculateCartItem } from '../utils/pos.utils';
 
 interface POSState {
   cart: CartItem[];
-  customer: Customer | null;
+  customer: CustomerSummary | null;
   paymentMode: string;
   receivedAmount: number;
   returnAmount: number;
@@ -64,11 +29,11 @@ interface POSState {
   updateDiscount: (id: number, discountPercent: number) => void;
   updateSellingPrice: (id: number, price: number) => void;
   clearCart: () => void;
-  setCustomer: (customer: Customer | null) => void;
+  setCustomer: (customer: CustomerSummary | null) => void;
   setPaymentMode: (mode: string) => void;
   setReceivedAmount: (amount: number) => void;
   setBillDiscount: (discount: number, type: 'percent' | 'amount') => void;
-  calculateTotals: () => Totals;
+  calculateTotals: () => POSTotals;
   holdBill: () => void;
   recallBill: (id: string) => void;
   getHoldBills: () => Array<{ id: string; data: any; timestamp: string }>;
@@ -94,16 +59,16 @@ export const usePOSStore = create<POSState>()(
 
       addToCart: (item) => {
         const existingItem = get().cart.find(
-          (cartItem) => cartItem.barcode === item.barcode
+          (cartItem) => cartItem.itemId === item.itemId
         );
 
         if (existingItem) {
           get().updateQuantity(existingItem.id, existingItem.quantity + item.quantity);
         } else {
-          const newItem: CartItem = {
+          const newItem: CartItem = recalculateCartItem({
             ...item,
             id: cartItemId++,
-          };
+          });
           set((state) => ({
             cart: [...state.cart, newItem],
           }));
@@ -125,13 +90,7 @@ export const usePOSStore = create<POSState>()(
         set((state) => ({
           cart: state.cart.map((item) =>
             item.id === id
-              ? {
-                  ...item,
-                  quantity,
-                  discountAmount: (item.sellingPrice * quantity * item.discountPercent) / 100,
-                  gstAmount: ((item.sellingPrice * quantity - (item.sellingPrice * quantity * item.discountPercent) / 100) * item.gstPercent) / 100,
-                  total: item.sellingPrice * quantity - (item.sellingPrice * quantity * item.discountPercent) / 100 + ((item.sellingPrice * quantity - (item.sellingPrice * quantity * item.discountPercent) / 100) * item.gstPercent) / 100,
-                }
+              ? recalculateCartItem(item, { quantity })
               : item
           ),
         }));
@@ -141,18 +100,7 @@ export const usePOSStore = create<POSState>()(
         set((state) => ({
           cart: state.cart.map((item) => {
             if (item.id === id) {
-              const discountAmount = (item.sellingPrice * item.quantity * discountPercent) / 100;
-              const taxableAmount = item.sellingPrice * item.quantity - discountAmount;
-              const gstAmount = (taxableAmount * item.gstPercent) / 100;
-              const total = taxableAmount + gstAmount;
-
-              return {
-                ...item,
-                discountPercent,
-                discountAmount,
-                gstAmount,
-                total,
-              };
+              return recalculateCartItem(item, { discountPercent });
             }
             return item;
           }),
@@ -163,18 +111,7 @@ export const usePOSStore = create<POSState>()(
         set((state) => ({
           cart: state.cart.map((item) => {
             if (item.id === id) {
-              const discountAmount = (price * item.quantity * item.discountPercent) / 100;
-              const taxableAmount = price * item.quantity - discountAmount;
-              const gstAmount = (taxableAmount * item.gstPercent) / 100;
-              const total = taxableAmount + gstAmount;
-
-              return {
-                ...item,
-                sellingPrice: price,
-                discountAmount,
-                gstAmount,
-                total,
-              };
+              return recalculateCartItem(item, { sellingPrice: price });
             }
             return item;
           }),
@@ -217,28 +154,7 @@ export const usePOSStore = create<POSState>()(
 
       calculateTotals: () => {
         const { cart, billDiscount, billDiscountType } = get();
-        
-        const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
-        
-        let discount = 0;
-        if (billDiscount > 0) {
-          if (billDiscountType === 'percent') {
-            discount = (subtotal * billDiscount) / 100;
-          } else {
-            discount = billDiscount;
-          }
-        }
-        
-        const taxableAmount = subtotal - discount;
-        const tax = cart.reduce((sum, item) => sum + item.gstAmount, 0);
-        const total = taxableAmount;
-
-        return {
-          subtotal,
-          discount,
-          tax,
-          total,
-        };
+        return calculateCartTotals(cart, billDiscount, billDiscountType);
       },
 
       holdBill: () => {

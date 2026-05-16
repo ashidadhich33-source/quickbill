@@ -2,6 +2,84 @@ import { ipcMain } from 'electron';
 import { DatabaseManager } from '../database/connection';
 import { generateInvoiceNumber, calculateGST, roundOff } from '../database/queries';
 
+interface NormalizedSaleItem {
+  itemId: number;
+  barcode: string;
+  itemName: string;
+  quantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  discountAmount: number;
+  gstPercent: number;
+  gstAmount: number;
+  total: number;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function normalizeSaleItems(items: any[]): NormalizedSaleItem[] {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error('Sale must contain at least one item');
+  }
+
+  return items.map((item, index) => {
+    const itemId = asNumber(item.itemId ?? item.id);
+    const quantity = asNumber(item.quantity);
+    const unitPrice = asNumber(item.unitPrice ?? item.sellingPrice ?? item.mrp);
+    const gstPercent = asNumber(item.gstPercent ?? item.gst_percentage);
+    const grossAmount = unitPrice * quantity;
+    const discountPercent = asNumber(item.discountPercent);
+    const discountAmount = asNumber(item.discountAmount, (grossAmount * discountPercent) / 100);
+    const total = asNumber(item.total, grossAmount - discountAmount);
+    const gstAmount = asNumber(item.gstAmount, gstPercent > 0 ? total - total / (1 + gstPercent / 100) : 0);
+    const itemName = item.itemName ?? item.itemDescription ?? item.item_description;
+
+    if (!itemId) {
+      throw new Error(`Invalid item id at line ${index + 1}`);
+    }
+    if (!itemName) {
+      throw new Error(`Invalid item name at line ${index + 1}`);
+    }
+    if (quantity <= 0) {
+      throw new Error(`Invalid quantity for ${itemName}`);
+    }
+
+    return {
+      itemId,
+      barcode: item.barcode || '',
+      itemName,
+      quantity,
+      unitPrice,
+      discountPercent,
+      discountAmount,
+      gstPercent,
+      gstAmount,
+      total,
+    };
+  });
+}
+
+function normalizeSaleData(saleData: any): any {
+  const items = normalizeSaleItems(saleData.items);
+  const itemTotal = items.reduce((sum, item) => sum + item.total, 0);
+  const taxTotal = items.reduce((sum, item) => sum + item.gstAmount, 0);
+  const discountTotal = items.reduce((sum, item) => sum + item.discountAmount, 0);
+
+  return {
+    ...saleData,
+    items,
+    subtotal: asNumber(saleData.subtotal, itemTotal + discountTotal),
+    discount: asNumber(saleData.discount, discountTotal),
+    tax: asNumber(saleData.tax, taxTotal),
+    total: asNumber(saleData.total, itemTotal),
+    paidAmount: asNumber(saleData.paidAmount, itemTotal),
+    balanceAmount: asNumber(saleData.balanceAmount, Math.max(0, itemTotal - asNumber(saleData.paidAmount, itemTotal))),
+  };
+}
+
 // Helper function to create sale
 async function createSale(dbManager: DatabaseManager, saleData: any) {
   try {
@@ -16,6 +94,8 @@ async function createSale(dbManager: DatabaseManager, saleData: any) {
     if (!createSale || !createSaleItem || !updateItemStock || !getConfig || !updateInvoiceNumber) {
       throw new Error('Required database statements not prepared');
     }
+
+    const normalizedSaleData = normalizeSaleData(saleData);
 
     // Get company config for invoice number
     const config = getConfig.get() as any;
@@ -43,8 +123,8 @@ async function createSale(dbManager: DatabaseManager, saleData: any) {
         data.tax || 0,
         data.roundOff || 0,
         data.total,
-        data.paidAmount || data.total,
-        data.balanceAmount || 0,
+        data.paidAmount ?? data.total,
+        data.balanceAmount ?? 0,
         data.paymentMode || 'CASH',
         'SALES',
         'COMPLETED',
@@ -74,8 +154,8 @@ async function createSale(dbManager: DatabaseManager, saleData: any) {
       }
 
       // Update customer balance if credit sale
-      if (data.paymentMode === 'CREDIT' && data.customer?.id) {
-        updateCustomerBalance.run(data.total, data.customer.id);
+      if (data.paymentMode === 'CREDIT' && data.customer?.id && data.balanceAmount > 0) {
+        updateCustomerBalance.run(data.balanceAmount, data.customer.id);
       }
 
       // Update invoice number
@@ -96,7 +176,7 @@ async function createSale(dbManager: DatabaseManager, saleData: any) {
       return { success: true, saleId, invoiceNumber };
     });
 
-    const result = transaction(saleData);
+    const result = transaction(normalizedSaleData);
     return result;
   } catch (error) {
     console.error('Error creating sale:', error);
