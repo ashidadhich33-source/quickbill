@@ -72,7 +72,7 @@ const PerformanceMonitor: React.FC<PerformanceMonitorProps> = ({
   }, []);
 
   const getPerformanceStatus = () => {
-    const issues = [];
+    const issues: string[] = [];
     
     if (metrics.renderTime > threshold.renderTime) {
       issues.push('Slow rendering');

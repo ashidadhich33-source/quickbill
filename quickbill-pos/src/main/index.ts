@@ -45,12 +45,12 @@ class QuickBillApp {
     setupEncryptionHandlers();
     
     // Setup purchase and supplier management handlers
-    registerSupplierHandlers();
-    registerPurchaseOrderHandlers();
-    registerPurchaseReceiptHandlers();
-    registerSupplierPaymentHandlers();
-    registerPurchaseReturnHandlers();
-    registerPurchaseReportHandlers();
+    registerSupplierHandlers(this.dbManager);
+    registerPurchaseOrderHandlers(this.dbManager);
+    registerPurchaseReceiptHandlers(this.dbManager);
+    registerSupplierPaymentHandlers(this.dbManager);
+    registerPurchaseReturnHandlers(this.dbManager);
+    registerPurchaseReportHandlers(this.dbManager);
 
     // Create main window
     await this.createMainWindow();

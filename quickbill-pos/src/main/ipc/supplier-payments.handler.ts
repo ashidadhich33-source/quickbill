@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron';
-import { dbManager } from '../database/connection';
+import { DatabaseManager } from '../database/connection';
 import { SupplierPayment, SupplierPaymentFormData, APIResponse, PaginatedResponse } from '../../shared/types';
 
-export function registerSupplierPaymentHandlers(): void {
+export function registerSupplierPaymentHandlers(dbManager: DatabaseManager): void {
   // Get all supplier payments with pagination
   ipcMain.handle('supplier-payments:getAll', async (event, page = 1, pageSize = 50, searchTerm = '') => {
     try {

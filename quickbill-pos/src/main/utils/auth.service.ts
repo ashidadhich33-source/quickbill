@@ -201,7 +201,7 @@ export class AuthService {
         .map(key => `${key} = ?`)
         .join(', ');
       
-      const values = Object.values(updates);
+      const values: any[] = Object.values(updates);
       values.push(userId);
 
       db.prepare(`
