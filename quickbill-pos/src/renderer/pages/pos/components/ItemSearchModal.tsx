@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Modal, Input, Button, Space, Tag, message, Spin, Empty, List, Row, Col, Typography
+  Modal, Input, Button, Space, Tag, message, Spin, Empty, Row, Col, Typography
 } from 'antd';
-import { FixedSizeList as List as VirtualList } from 'react-window';
+import { FixedSizeList as VirtualList } from 'react-window';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
 
 interface Item {
@@ -39,24 +39,6 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    if (visible) {
-      if (categoryFilter) {
-        loadItemsByCategory(categoryFilter);
-      } else {
-        loadItems();
-      }
-    }
-  }, [visible, categoryFilter, loadItems]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
-    };
-  }, [searchTimeout]);
 
   const loadItems = useCallback(async (search: string = '') => {
     setLoading(true);
@@ -74,7 +56,7 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
     }
   }, []);
 
-  const loadItemsByCategory = async (category: string) => {
+  const loadItemsByCategory = useCallback(async (category: string) => {
     setLoading(true);
     try {
       const result = await window.electronAPI.getItemsByCategory(category);
@@ -88,7 +70,26 @@ const ItemSearchModal: React.FC<ItemSearchModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (visible) {
+      if (categoryFilter) {
+        loadItemsByCategory(categoryFilter);
+      } else {
+        loadItems();
+      }
+    }
+  }, [visible, categoryFilter, loadItems, loadItemsByCategory]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
 
   // Debounced search
   const debouncedSearch = useCallback((search: string) => {

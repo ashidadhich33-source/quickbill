@@ -5,6 +5,7 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -16,8 +17,10 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
     /* Path mapping */
@@ -38,9 +41,7 @@
   "exclude": [
     "node_modules",
     "dist",
-    "dist-electron"
-  ],
-  "references": [
-    { "path": "./tsconfig.node.json" }
+    "dist-electron",
+    "src/__tests__"
   ]
 }

@@ -33,7 +33,7 @@ export function setupSystemHandlers(): void {
   // Get disk space
   ipcMain.handle('system:diskSpace', async () => {
     try {
-      const drives = [];
+      const drives: any[] = [];
       
       if (os.platform() === 'win32') {
         // Windows - get all drives
@@ -174,8 +174,8 @@ export function setupSystemHandlers(): void {
   // Get network interfaces
   ipcMain.handle('system:networkInterfaces', async () => {
     try {
-      const interfaces = os.networkInterfaces();
-      const networkInfo = [];
+      const interfaces = os.networkInterfaces() as Record<string, any[] | undefined>;
+      const networkInfo: any[] = [];
       
       for (const [name, addresses] of Object.entries(interfaces)) {
         if (addresses) {

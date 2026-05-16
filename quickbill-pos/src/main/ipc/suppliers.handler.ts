@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron';
-import { dbManager } from '../database/connection';
+import { DatabaseManager } from '../database/connection';
 import { Supplier, SupplierFormData, APIResponse, PaginatedResponse } from '../../shared/types';
 
-export function registerSupplierHandlers(): void {
+export function registerSupplierHandlers(dbManager: DatabaseManager): void {
   // Get all suppliers with pagination
   ipcMain.handle('suppliers:getAll', async (event, page = 1, pageSize = 50, searchTerm = '') => {
     try {
@@ -132,8 +132,8 @@ export function registerSupplierHandlers(): void {
         }
       }
       
-      const updateFields = [];
-      const values = [];
+      const updateFields: string[] = [];
+      const values: any[] = [];
       
       Object.entries(supplierData).forEach(([key, value]) => {
         if (value !== undefined) {

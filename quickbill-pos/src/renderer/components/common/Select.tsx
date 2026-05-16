@@ -22,7 +22,7 @@ interface SelectProps extends AntSelectProps {
 
 const Select: React.FC<SelectProps> = ({
   children,
-  options = [],
+  options = [] as NonNullable<SelectProps['options']>,
   placeholder,
   value,
   onChange,
