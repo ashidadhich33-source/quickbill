@@ -4,6 +4,24 @@ import { persist } from 'zustand/middleware';
 import type { CartItem, CustomerSummary, POSTotals } from '../utils/pos.utils';
 import { calculateCartTotals, recalculateCartItem } from '../utils/pos.utils';
 
+interface HeldBillSummary {
+  holdId: string;
+  createdAt: string;
+  expiresAt: string;
+  cashierName: string;
+}
+
+interface HeldBillSnapshot {
+  cart: CartItem[];
+  customer: CustomerSummary | null;
+  paymentMode: string;
+  receivedAmount: number;
+  billDiscount: number;
+  billDiscountType: 'percent' | 'amount';
+  totals: POSTotals;
+  timestamp: string;
+}
+
 interface POSState {
   cart: CartItem[];
   customer: CustomerSummary | null;
@@ -12,17 +30,7 @@ interface POSState {
   returnAmount: number;
   billDiscount: number;
   billDiscountType: 'percent' | 'amount';
-  holdBills: Array<{
-    id: string;
-    data: any;
-    timestamp: string;
-  }>;
-  heldBills: Array<{
-    holdId: string;
-    createdAt: string;
-    expiresAt: string;
-    cashierName: string;
-  }>;
+  heldBills: HeldBillSummary[];
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;
@@ -34,15 +42,31 @@ interface POSState {
   setReceivedAmount: (amount: number) => void;
   setBillDiscount: (discount: number, type: 'percent' | 'amount') => void;
   calculateTotals: () => POSTotals;
-  holdBill: () => string;
-  recallBill: (id: string) => void;
-  getHoldBills: () => Array<{ id: string; data: any; timestamp: string }>;
-  clearHoldBill: (id: string) => void;
+  holdBill: () => Promise<string>;
+  recallBill: (holdId: string) => Promise<void>;
   loadHeldBills: () => Promise<void>;
   deleteHeldBill: (holdId: string) => Promise<void>;
 }
 
 let cartItemId = 1;
+
+const normalizeHeldBillSummary = (bill: any): HeldBillSummary => ({
+  holdId: String(bill.holdId ?? bill.hold_id ?? bill.id ?? ''),
+  createdAt: bill.createdAt ?? bill.created_at ?? bill.timestamp ?? '',
+  expiresAt: bill.expiresAt ?? bill.expires_at ?? '',
+  cashierName: bill.cashierName ?? bill.cashier_name ?? '',
+});
+
+const buildHeldBillSnapshot = (state: POSState): HeldBillSnapshot => ({
+  cart: state.cart,
+  customer: state.customer,
+  paymentMode: state.paymentMode,
+  receivedAmount: state.receivedAmount,
+  billDiscount: state.billDiscount,
+  billDiscountType: state.billDiscountType,
+  totals: state.calculateTotals(),
+  timestamp: new Date().toISOString(),
+});
 
 export const usePOSStore = create<POSState>()(
   persist(
@@ -54,7 +78,6 @@ export const usePOSStore = create<POSState>()(
       returnAmount: 0,
       billDiscount: 0,
       billDiscountType: 'percent',
-      holdBills: [],
       heldBills: [],
 
       addToCart: (item) => {
@@ -158,78 +181,64 @@ export const usePOSStore = create<POSState>()(
         return calculateCartTotals(cart, billDiscount, billDiscountType);
       },
 
-      holdBill: () => {
-        const { cart, customer, paymentMode, receivedAmount, billDiscount, billDiscountType } = get();
-        const totals = get().calculateTotals();
-        
-        const billData = {
-          cart,
-          customer,
-          paymentMode,
-          receivedAmount,
-          billDiscount,
-          billDiscountType,
-          totals,
-          timestamp: new Date().toISOString(),
-        };
+      holdBill: async () => {
+        const result = await window.electronAPI.holdBill(buildHeldBillSnapshot(get()));
 
-        const holdId = `hold_${Date.now()}`;
-        
-        set((state) => ({
-          holdBills: [...state.holdBills, { id: holdId, data: billData, timestamp: new Date().toISOString() }],
-        }));
-
-        return holdId;
-      },
-
-      recallBill: (id) => {
-        const holdBill = get().holdBills.find((bill) => bill.id === id);
-        if (holdBill) {
-          const { cart, customer, paymentMode, receivedAmount, billDiscount, billDiscountType } = holdBill.data;
-          
-          set({
-            cart,
-            customer,
-            paymentMode,
-            receivedAmount,
-            billDiscount,
-            billDiscountType,
-          });
+        if (!result.success || !result.data?.holdId) {
+          throw new Error(result.error || 'Error holding bill');
         }
+
+        await get().loadHeldBills();
+        return result.data.holdId;
       },
 
-      getHoldBills: () => {
-        return get().holdBills;
-      },
+      recallBill: async (holdId) => {
+        const result = await window.electronAPI.recallBill(holdId);
 
-      clearHoldBill: (id) => {
-        set((state) => ({
-          holdBills: state.holdBills.filter((bill) => bill.id !== id),
-        }));
+        if (!result.success || !result.data) {
+          throw new Error(result.error || 'Error recalling held bill');
+        }
+
+        const { cart, customer, paymentMode, receivedAmount, billDiscount, billDiscountType } = result.data as HeldBillSnapshot;
+        const recalledCart = cart || [];
+        const recalledReceivedAmount = receivedAmount || 0;
+        const recalledBillDiscount = billDiscount || 0;
+        const recalledBillDiscountType = billDiscountType || 'percent';
+        const recalledTotals = calculateCartTotals(
+          recalledCart,
+          recalledBillDiscount,
+          recalledBillDiscountType
+        );
+
+        set({
+          cart: recalledCart,
+          customer: customer || null,
+          paymentMode: paymentMode || 'CASH',
+          receivedAmount: recalledReceivedAmount,
+          returnAmount: Math.max(0, recalledReceivedAmount - recalledTotals.total),
+          billDiscount: recalledBillDiscount,
+          billDiscountType: recalledBillDiscountType,
+        });
       },
 
       loadHeldBills: async () => {
-        try {
-          const result = await window.electronAPI.getHeldBills();
-          if (result.success) {
-            set({ heldBills: result.data || [] });
-          }
-        } catch (error) {
-          console.error('Error loading held bills:', error);
+        const result = await window.electronAPI.getHeldBills();
+        if (!result.success) {
+          throw new Error(result.error || 'Error loading held bills');
         }
+
+        set({ heldBills: (result.data || []).map(normalizeHeldBillSummary).filter((bill: HeldBillSummary) => bill.holdId) });
       },
 
       deleteHeldBill: async (holdId) => {
-        try {
-          const result = await window.electronAPI.deleteHeldBill(holdId);
-          if (result.success) {
-            set((state) => ({
-              heldBills: state.heldBills.filter((bill) => bill.holdId !== holdId),
-            }));
-          }
-        } catch (error) {
-          console.error('Error deleting held bill:', error);
+        const result = await window.electronAPI.deleteHeldBill(holdId);
+        if (!result.success) {
+          throw new Error(result.error || 'Error deleting held bill');
         }
+
+        set((state) => ({
+          heldBills: state.heldBills.filter((bill) => bill.holdId !== holdId),
+        }));
       },
     }),
     {
@@ -242,7 +251,6 @@ export const usePOSStore = create<POSState>()(
         returnAmount: state.returnAmount,
         billDiscount: state.billDiscount,
         billDiscountType: state.billDiscountType,
-        holdBills: state.holdBills,
       }),
     }
   )

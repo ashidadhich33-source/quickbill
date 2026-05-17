@@ -39,8 +39,9 @@ const POSScreen: React.FC = () => {
     setBillDiscount,
     holdBill: holdCurrentBill,
     recallBill: recallHeldBill,
-    getHoldBills,
-    clearHoldBill,
+    heldBills,
+    loadHeldBills,
+    deleteHeldBill,
     calculateTotals
   } = usePOSStore();
 
@@ -57,7 +58,6 @@ const POSScreen: React.FC = () => {
 
   const searchInputRef = useRef<any>(null);
   const totals = calculateTotals();
-  const heldBills = getHoldBills();
 
   // Barcode Scanner Hook
   useBarcodeScanner((barcode: string) => {
@@ -84,6 +84,12 @@ const POSScreen: React.FC = () => {
   useEffect(() => {
     searchInputRef.current?.focus();
   }, [cart]);
+
+  useEffect(() => {
+    loadHeldBills().catch(() => {
+      message.error('Error loading held bills');
+    });
+  }, [loadHeldBills]);
 
   const addCatalogItemToCart = useCallback((item: POSCatalogItem) => {
     const existingItem = cart.find((cartItem) => cartItem.itemId === item.id);
@@ -215,33 +221,47 @@ const POSScreen: React.FC = () => {
     }
   };
 
-  const holdBill = () => {
+  const holdBill = async () => {
     if (cart.length === 0) {
       message.warning('Cart is empty');
       return;
     }
 
-    const holdId = holdCurrentBill();
-    clearCart();
-    setSelectedRow(null);
-    message.success(`Bill held: ${holdId}`);
-  };
-
-  const recallBill = () => {
-    if (heldBills.length === 0) {
-      message.warning('No held bills to recall');
-      return;
+    try {
+      const holdId = await holdCurrentBill();
+      clearCart();
+      setSelectedRow(null);
+      message.success(`Bill held: ${holdId}`);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Error holding bill');
     }
-
-    setShowRecallModal(true);
   };
 
-  const handleRecallBill = (holdId: string) => {
-    recallHeldBill(holdId);
-    clearHoldBill(holdId);
-    setShowRecallModal(false);
-    setSelectedRow(null);
-    message.success('Held bill recalled');
+  const recallBill = async () => {
+    try {
+      await loadHeldBills();
+      const latestHeldBills = usePOSStore.getState().heldBills;
+      if (latestHeldBills.length === 0) {
+        message.warning('No held bills to recall');
+        return;
+      }
+
+      setShowRecallModal(true);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Error loading held bills');
+    }
+  };
+
+  const handleRecallBill = async (holdId: string) => {
+    try {
+      await recallHeldBill(holdId);
+      await deleteHeldBill(holdId);
+      setShowRecallModal(false);
+      setSelectedRow(null);
+      message.success('Held bill recalled');
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Error recalling held bill');
+    }
   };
 
   const cancelOperation = () => {
@@ -630,14 +650,17 @@ const POSScreen: React.FC = () => {
           renderItem={(bill) => (
             <List.Item
               actions={[
-                <Button key="recall" type="primary" onClick={() => handleRecallBill(bill.id)}>
+                <Button key="recall" type="primary" onClick={() => handleRecallBill(bill.holdId)}>
                   Recall
                 </Button>,
               ]}
             >
               <List.Item.Meta
-                title={bill.id}
-                description={new Date(bill.timestamp).toLocaleString()}
+                title={bill.holdId}
+                description={[
+                  bill.createdAt ? new Date(bill.createdAt).toLocaleString() : null,
+                  bill.cashierName ? `Cashier: ${bill.cashierName}` : null,
+                ].filter(Boolean).join(' • ')}
               />
             </List.Item>
           )}
