@@ -212,7 +212,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             marginBottom: 16
           }}>
             <p style={{ margin: 0, color: '#d46b08' }}>
-              <strong>Credit Sale:</strong> Amount will be added to customer's account balance.
+              <strong>Credit Sale:</strong> Amount will be added to customer&apos;s account balance.
             </p>
           </div>
         )}

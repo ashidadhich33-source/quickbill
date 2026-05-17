@@ -58,10 +58,15 @@ jest.mock('fs', () => ({
 }));
 
 // Mock path
-jest.mock('path', () => ({
-  join: jest.fn((...args) => args.join('/')),
-  dirname: jest.fn((p) => p.split('/').slice(0, -1).join('/')),
-}));
+jest.mock('path', () => {
+  const actualPath = jest.requireActual('path');
+  return {
+    ...actualPath,
+    join: jest.fn((...args) => args.join('/')),
+    dirname: jest.fn((p) => p.split('/').slice(0, -1).join('/')),
+    resolve: jest.fn((...args) => args.join('/')),
+  };
+});
 
 // Mock os
 jest.mock('os', () => ({

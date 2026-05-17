@@ -20,7 +20,7 @@ import './POSScreen.css';
 const { Title, Text } = Typography;
 
 
-const POSScreen: React.FC = () => {
+export const POSScreen: React.FC = () => {
   const {
     cart,
     customer,
@@ -586,7 +586,7 @@ const POSScreen: React.FC = () => {
         <div>
           <span>Last Bill: #INV-2024-001234</span>
           <span style={{ margin: '0 10px' }}>|</span>
-          <span>Today's Sale: ₹45,230</span>
+          <span>Today&apos;s Sale: ₹45,230</span>
         </div>
       </div>
 

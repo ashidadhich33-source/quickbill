@@ -10,7 +10,7 @@ export function registerPurchaseReturnHandlers(dbManager: DatabaseManager): void
       const offset = (page - 1) * pageSize;
       
       let whereClause = 'WHERE 1=1';
-      let params: any[] = [];
+      const params: any[] = [];
       
       if (searchTerm) {
         whereClause += ' AND (return_number LIKE ? OR supplier_name LIKE ? OR reason LIKE ?)';
@@ -376,7 +376,7 @@ export function registerPurchaseReturnHandlers(dbManager: DatabaseManager): void
       const db = dbManager.getDatabase();
       
       let whereClause = 'WHERE pr.status IN (?, ?)';
-      let params: any[] = ['RECEIVED', 'VERIFIED'];
+      const params: any[] = ['RECEIVED', 'VERIFIED'];
       
       if (supplierId) {
         whereClause += ' AND pr.supplier_id = ?';

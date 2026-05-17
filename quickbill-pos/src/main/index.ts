@@ -85,7 +85,7 @@ class QuickBillApp {
       await this.mainWindow.loadURL('http://localhost:5173');
       this.mainWindow.webContents.openDevTools();
     } else {
-      await this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+      await this.mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
 
     this.mainWindow.once('ready-to-show', () => {

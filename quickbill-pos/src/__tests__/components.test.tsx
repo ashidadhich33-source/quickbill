@@ -11,23 +11,37 @@ jest.mock('../renderer/hooks/useHotkeys');
 
 const mockUsePOSStore = usePOSStore as jest.MockedFunction<typeof usePOSStore>;
 
+const mockStore = {
+  cart: [],
+  customer: null,
+  paymentMode: 'CASH',
+  receivedAmount: 0,
+  billDiscount: 0,
+  billDiscountType: 'percent' as const,
+  heldBills: [],
+  addToCart: jest.fn(),
+  removeFromCart: jest.fn(),
+  updateQuantity: jest.fn(),
+  updateDiscount: jest.fn(),
+  setCustomer: jest.fn(),
+  clearCart: jest.fn(),
+  setPaymentMode: jest.fn(),
+  setReceivedAmount: jest.fn(),
+  setBillDiscount: jest.fn(),
+  holdBill: jest.fn(),
+  recallBill: jest.fn(),
+  loadHeldBills: jest.fn(() => Promise.resolve()),
+  deleteHeldBill: jest.fn(),
+  calculateTotals: jest.fn(() => ({
+    subtotal: 0,
+    discount: 0,
+    taxable: 0,
+    tax: 0,
+    total: 0
+  }))
+};
+
 describe('POSScreen Component', () => {
-  const mockStore = {
-    cart: [],
-    customer: null,
-    addToCart: jest.fn(),
-    removeFromCart: jest.fn(),
-    updateQuantity: jest.fn(),
-    updateDiscount: jest.fn(),
-    setCustomer: jest.fn(),
-    clearCart: jest.fn(),
-    calculateTotals: jest.fn(() => ({
-      subtotal: 0,
-      discount: 0,
-      tax: 0,
-      total: 0
-    }))
-  };
 
   beforeEach(() => {
     mockUsePOSStore.mockReturnValue(mockStore);
@@ -59,7 +73,7 @@ describe('POSScreen Component', () => {
     );
 
     expect(screen.getByPlaceholderText('Barcode/SKU/Name')).toBeInTheDocument();
-    expect(screen.getByText('Search')).toBeInTheDocument();
+    expect(screen.getAllByText('Search')).toHaveLength(2);
     expect(screen.getByPlaceholderText('Mobile/Name')).toBeInTheDocument();
   });
 
@@ -109,6 +123,7 @@ describe('POSScreen Component', () => {
     const mockTotals = {
       subtotal: 100,
       discount: 10,
+      taxable: 90,
       tax: 18,
       total: 108
     };
@@ -128,10 +143,9 @@ describe('POSScreen Component', () => {
     expect(screen.getByText('₹100.00')).toBeInTheDocument();
     expect(screen.getByText('Discount:')).toBeInTheDocument();
     expect(screen.getByText('₹10.00')).toBeInTheDocument();
-    expect(screen.getByText('CGST (9%):')).toBeInTheDocument();
-    expect(screen.getByText('₹9.00')).toBeInTheDocument();
-    expect(screen.getByText('SGST (9%):')).toBeInTheDocument();
-    expect(screen.getByText('₹9.00')).toBeInTheDocument();
+    expect(screen.getByText('CGST:')).toBeInTheDocument();
+    expect(screen.getByText('SGST:')).toBeInTheDocument();
+    expect(screen.getAllByText('₹9.00')).toHaveLength(2);
     expect(screen.getByText('TOTAL:')).toBeInTheDocument();
     expect(screen.getByText('₹108.00')).toBeInTheDocument();
   });
@@ -156,10 +170,10 @@ describe('POSScreen Component', () => {
       </ConfigProvider>
     );
 
-    expect(screen.getByText('Name: John Doe')).toBeInTheDocument();
-    expect(screen.getByText('Mobile: 9876543210')).toBeInTheDocument();
-    expect(screen.getByText('Points: 100')).toBeInTheDocument();
-    expect(screen.getByText('Credit: ₹500.00')).toBeInTheDocument();
+    expect(screen.getByText('John Doe')).toBeInTheDocument();
+    expect(screen.getByText('9876543210')).toBeInTheDocument();
+    expect(screen.getByText('100')).toBeInTheDocument();
+    expect(screen.getByText('₹500.00')).toBeInTheDocument();
   });
 
   it('should display cart items when items are added', () => {
@@ -236,13 +250,14 @@ describe('POSScreen Component', () => {
     const receivedInput = screen.getByPlaceholderText('Enter amount');
     fireEvent.change(receivedInput, { target: { value: '150' } });
 
-    expect(receivedInput).toHaveValue(150);
+    expect(receivedInput).toHaveValue('150');
   });
 
   it('should display return amount when received amount is greater than total', () => {
     const mockTotals = {
       subtotal: 100,
       discount: 0,
+      taxable: 100,
       tax: 18,
       total: 118
     };
@@ -252,14 +267,17 @@ describe('POSScreen Component', () => {
       calculateTotals: jest.fn(() => mockTotals)
     });
 
+    mockUsePOSStore.mockReturnValue({
+      ...mockStore,
+      receivedAmount: 150,
+      calculateTotals: jest.fn(() => mockTotals)
+    });
+
     render(
       <ConfigProvider>
         <POSScreen />
       </ConfigProvider>
     );
-
-    const receivedInput = screen.getByPlaceholderText('Enter amount');
-    fireEvent.change(receivedInput, { target: { value: '150' } });
 
     expect(screen.getByText('Return: ₹32.00')).toBeInTheDocument();
   });

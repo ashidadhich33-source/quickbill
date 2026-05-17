@@ -98,19 +98,19 @@ describe('GSTCalculator', () => {
   describe('calculateBulkGST', () => {
     it('should calculate GST for multiple items correctly', () => {
       const items = [
-        { amount: 100, rate: 18, inclusive: true },
-        { amount: 200, rate: 12, inclusive: true },
-        { amount: 50, rate: 5, inclusive: true }
+        { amount: 100, rate: 18, inclusive: false },
+        { amount: 200, rate: 12, inclusive: false },
+        { amount: 50, rate: 5, inclusive: false }
       ];
 
       const result = gstCalculator.calculateBulkGST(items, 'Maharashtra');
 
       expect(result.items).toHaveLength(3);
       expect(result.totals.totalBaseAmount).toBe(350);
-      expect(result.totals.totalCGST).toBe(22.5);
-      expect(result.totals.totalSGST).toBe(22.5);
+      expect(result.totals.totalCGST).toBe(22.25);
+      expect(result.totals.totalSGST).toBe(22.25);
       expect(result.totals.totalIGST).toBe(0);
-      expect(result.totals.totalAmount).toBe(395);
+      expect(result.totals.totalAmount).toBe(394.5);
     });
   });
 

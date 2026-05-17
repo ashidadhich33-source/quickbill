@@ -1,5 +1,43 @@
 // Test setup file
 import 'jest';
+import '@testing-library/jest-dom';
+
+// Mock Electron for tests that import main-process modules.
+jest.mock('electron', () => ({
+  ipcMain: {
+    handle: jest.fn(),
+    on: jest.fn(),
+    removeAllListeners: jest.fn(),
+  },
+  ipcRenderer: {
+    invoke: jest.fn(),
+    on: jest.fn(),
+    removeAllListeners: jest.fn(),
+    removeListener: jest.fn(),
+  },
+  contextBridge: {
+    exposeInMainWorld: jest.fn(),
+  },
+  BrowserWindow: jest.fn(),
+  app: {
+    getPath: jest.fn(() => '/tmp'),
+    getVersion: jest.fn(() => '1.0.0'),
+  },
+  dialog: {
+    showOpenDialog: jest.fn(),
+    showSaveDialog: jest.fn(),
+  },
+  systemPreferences: {
+    getAccentColor: jest.fn(() => '#0078d4'),
+  },
+}));
+
+// Avoid loading native bcrypt bindings in unit tests.
+jest.mock('bcrypt', () => ({
+  hash: jest.fn(async (value: string) => `hashed:${value}`),
+  hashSync: jest.fn((value: string) => `hashed:${value}`),
+  compare: jest.fn(async (value: string, hash: string) => hash === `hashed:${value}`),
+}));
 
 // Mock Electron APIs for testing
 global.window = {
@@ -101,3 +139,16 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn()
 };
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});

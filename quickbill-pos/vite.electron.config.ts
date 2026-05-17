@@ -1,5 +1,11 @@
 import { defineConfig } from 'vite';
+import { builtinModules } from 'module';
 import { resolve } from 'path';
+
+const nodeBuiltins = [
+  ...builtinModules,
+  ...builtinModules.map((moduleName) => `node:${moduleName}`),
+];
 
 export default defineConfig({
   build: {
@@ -10,7 +16,14 @@ export default defineConfig({
         main: resolve(__dirname, 'src/main/main.ts'),
         preload: resolve(__dirname, 'src/preload/index.ts'),
       },
+      external: [
+        'electron',
+        'better-sqlite3',
+        'bcrypt',
+        ...nodeBuiltins,
+      ],
       output: {
+        format: 'cjs',
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
         assetFileNames: '[name].[ext]',
