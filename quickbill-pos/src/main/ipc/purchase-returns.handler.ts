@@ -376,7 +376,7 @@ export function registerPurchaseReturnHandlers(dbManager: DatabaseManager): void
       const db = dbManager.getDatabase();
       
       let whereClause = 'WHERE pr.status IN (?, ?)';
-      const params: any[] = ['RECEIVED', 'VERIFIED'];
+      let params: any[] = ['RECEIVED', 'VERIFIED'];
       
       if (supplierId) {
         whereClause += ' AND pr.supplier_id = ?';
