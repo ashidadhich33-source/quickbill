@@ -1,21 +1,10 @@
 import React from 'react';
 import { Tooltip as AntTooltip, TooltipProps as AntTooltipProps } from 'antd';
 
-interface TooltipProps extends AntTooltipProps {
+type TooltipProps = AntTooltipProps & {
   children: React.ReactNode;
   title: React.ReactNode;
-  placement?: 'top' | 'left' | 'right' | 'bottom' | 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'leftTop' | 'leftBottom' | 'rightTop' | 'rightBottom';
-  trigger?: 'hover' | 'focus' | 'click' | 'contextMenu';
-  visible?: boolean;
-  onVisibleChange?: (visible: boolean) => void;
-  mouseEnterDelay?: number;
-  mouseLeaveDelay?: number;
-  overlayClassName?: string;
-  overlayStyle?: React.CSSProperties;
-  arrowPointAtCenter?: boolean;
-  autoAdjustOverflow?: boolean;
-  getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
-}
+};
 
 const Tooltip: React.FC<TooltipProps> = ({
   children,

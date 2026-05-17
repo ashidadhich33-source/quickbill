@@ -110,7 +110,7 @@ function PaginationWrapper<T>({
             showSizeChanger={showSizeChanger}
             showQuickJumper={showQuickJumper}
             pageSizeOptions={pageSizeOptions}
-            showTotal={false}
+            showTotal={undefined}
             size="small"
           />
         </Space>

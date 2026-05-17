@@ -108,7 +108,7 @@ function PaginatedTable<T extends Record<string, any>>({
             showSizeChanger={showSizeChanger}
             showQuickJumper={showQuickJumper}
             pageSizeOptions={pageSizeOptions}
-            showTotal={false}
+            showTotal={undefined}
             size="small"
           />
         </Space>

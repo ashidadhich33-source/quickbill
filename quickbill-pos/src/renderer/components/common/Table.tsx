@@ -1,11 +1,12 @@
 import React from 'react';
 import { Table as AntTable, TableProps as AntTableProps } from 'antd';
+import type { TablePaginationConfig } from 'antd/es/table';
 
 interface TableProps<T = any> extends AntTableProps<T> {
   dataSource: T[];
   columns: any[];
   loading?: boolean;
-  pagination?: boolean | object;
+  pagination?: false | TablePaginationConfig;
   scroll?: { x?: number; y?: number };
   size?: 'small' | 'middle' | 'large';
   bordered?: boolean;
@@ -17,7 +18,7 @@ const Table = <T extends Record<string, any>>({
   dataSource,
   columns,
   loading = false,
-  pagination = true,
+  pagination = {},
   scroll,
   size = 'middle',
   bordered = false,

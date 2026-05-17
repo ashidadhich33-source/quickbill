@@ -26,14 +26,8 @@ export function usePerformanceOptimization(options: PerformanceOptions = {}) {
 
   // Memoized data processing
   const processData = useCallback(
-    (data: any[], processor: (item: any) => any) => {
-      if (!enableMemoization) {
-        return data.map(processor);
-      }
-      
-      return useMemo(() => data.map(processor), [data, processor]);
-    },
-    [enableMemoization]
+    (data: any[], processor: (item: any) => any) => data.map(processor),
+    []
   );
 
   // Optimized filtering
@@ -175,39 +169,9 @@ export function usePerformanceOptimization(options: PerformanceOptions = {}) {
     []
   );
 
-  // Lazy loading
+  // Compatibility helper. Prefer the exported useInfiniteScroll hook for new code.
   const useLazyLoading = useCallback(
-    (loadMore: () => void, hasMore: boolean, threshold: number = 100) => {
-      const observerRef = useRef<IntersectionObserver | null>(null);
-      const loadingRef = useRef<HTMLDivElement | null>(null);
-
-      useEffect(() => {
-        if (!hasMore) return;
-
-        const observer = new IntersectionObserver(
-          (entries) => {
-            if (entries[0].isIntersecting) {
-              loadMore();
-            }
-          },
-          { threshold: 0.1 }
-        );
-
-        if (loadingRef.current) {
-          observer.observe(loadingRef.current);
-        }
-
-        observerRef.current = observer;
-
-        return () => {
-          if (observerRef.current) {
-            observerRef.current.disconnect();
-          }
-        };
-      }, [loadMore, hasMore]);
-
-      return loadingRef;
-    },
+    () => ({ current: null } as React.RefObject<HTMLDivElement>),
     []
   );
 

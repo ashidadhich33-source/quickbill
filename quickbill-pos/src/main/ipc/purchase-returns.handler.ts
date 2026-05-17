@@ -10,7 +10,7 @@ export function registerPurchaseReturnHandlers(dbManager: DatabaseManager): void
       const offset = (page - 1) * pageSize;
       
       let whereClause = 'WHERE 1=1';
-      let params: any[] = [];
+      const params: any[] = [];
       
       if (searchTerm) {
         whereClause += ' AND (return_number LIKE ? OR supplier_name LIKE ? OR reason LIKE ?)';

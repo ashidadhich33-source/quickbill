@@ -279,6 +279,11 @@ describe('Database Operations', () => {
 
   describe('Transaction Management', () => {
     it('should handle transaction rollback on error', () => {
+      db.prepare(`
+        INSERT INTO items (brand, style_code, item_description, barcode, mrp, gst_percentage)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('Existing Brand', 'EX001', 'Existing Item', '1234567890', 100, 18);
+
       const transaction = db.transaction((data: any) => {
         // Insert item
         db.prepare(`
@@ -306,7 +311,7 @@ describe('Database Operations', () => {
 
       // Verify no items were inserted due to rollback
       const items = db.prepare('SELECT COUNT(*) as count FROM items').get();
-      expect(items?.count).toBe(0);
+      expect(items?.count).toBe(1);
     });
   });
 

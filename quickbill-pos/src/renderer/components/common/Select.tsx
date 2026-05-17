@@ -17,7 +17,7 @@ interface SelectProps extends AntSelectProps {
   allowClear?: boolean;
   showSearch?: boolean;
   filterOption?: boolean | ((input: string, option?: any) => boolean);
-  mode?: 'multiple' | 'tags' | 'combobox';
+  mode?: 'multiple' | 'tags';
 }
 
 const Select: React.FC<SelectProps> = ({

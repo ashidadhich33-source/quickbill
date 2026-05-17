@@ -20,7 +20,7 @@ import {
   DollarOutlined,
   UndoOutlined,
   CreditCardOutlined,
-  TrendingUpOutlined,
+  RiseOutlined,
   BarChartOutlined
 } from '@ant-design/icons';
 import { APIResponse } from '../../../shared/types';
@@ -413,7 +413,7 @@ const PurchaseReportsScreen: React.FC = () => {
           {/* Top Suppliers */}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col span={24}>
-              <Card title="Top Suppliers" extra={<TrendingUpOutlined />}>
+              <Card title="Top Suppliers" extra={<RiseOutlined />}>
                 <Table
                   columns={topSuppliersColumns}
                   dataSource={topSuppliers}
