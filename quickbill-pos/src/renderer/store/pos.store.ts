@@ -34,7 +34,7 @@ interface POSState {
   setReceivedAmount: (amount: number) => void;
   setBillDiscount: (discount: number, type: 'percent' | 'amount') => void;
   calculateTotals: () => POSTotals;
-  holdBill: () => void;
+  holdBill: () => string;
   recallBill: (id: string) => void;
   getHoldBills: () => Array<{ id: string; data: any; timestamp: string }>;
   clearHoldBill: (id: string) => void;
@@ -126,6 +126,7 @@ export const usePOSStore = create<POSState>()(
           receivedAmount: 0,
           returnAmount: 0,
           billDiscount: 0,
+          billDiscountType: 'percent',
         });
       },
 

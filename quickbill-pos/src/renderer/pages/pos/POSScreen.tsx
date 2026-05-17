@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Input, Button, Table, Card, Row, Col, Space, Modal,
+  Input, Button, Table, Card, Row, Col, Space, Modal, List,
   message, Divider, Tag, InputNumber, Select, Statistic, Typography
 } from 'antd';
 import {
@@ -30,6 +30,17 @@ const POSScreen: React.FC = () => {
     updateDiscount,
     setCustomer,
     clearCart,
+    paymentMode,
+    receivedAmount,
+    billDiscount,
+    billDiscountType,
+    setPaymentMode,
+    setReceivedAmount,
+    setBillDiscount,
+    holdBill: holdCurrentBill,
+    recallBill: recallHeldBill,
+    getHoldBills,
+    clearHoldBill,
     calculateTotals
   } = usePOSStore();
 
@@ -39,11 +50,14 @@ const POSScreen: React.FC = () => {
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
-  const [paymentMode, setPaymentMode] = useState('CASH');
-  const [receivedAmount, setReceivedAmount] = useState<number>(0);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [showRecallModal, setShowRecallModal] = useState(false);
+  const [discountValue, setDiscountValue] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<'percent' | 'amount'>('percent');
 
   const searchInputRef = useRef<any>(null);
   const totals = calculateTotals();
+  const heldBills = getHoldBills();
 
   // Barcode Scanner Hook
   useBarcodeScanner((barcode: string) => {
@@ -172,8 +186,25 @@ const POSScreen: React.FC = () => {
   };
 
   const applyBillDiscount = () => {
-    // Implementation for bill-level discount
-    message.info('Bill discount feature coming soon');
+    setDiscountValue(billDiscount);
+    setDiscountType(billDiscountType);
+    setShowDiscountModal(true);
+  };
+
+  const confirmBillDiscount = () => {
+    if (discountValue < 0) {
+      message.warning('Discount cannot be negative');
+      return;
+    }
+
+    if (discountType === 'percent' && discountValue > 100) {
+      message.warning('Percentage discount cannot exceed 100%');
+      return;
+    }
+
+    setBillDiscount(discountValue, discountType);
+    setShowDiscountModal(false);
+    message.success('Bill discount applied');
   };
 
   const showCustomerHistory = () => {
@@ -185,11 +216,32 @@ const POSScreen: React.FC = () => {
   };
 
   const holdBill = () => {
-    message.info('Bill hold feature coming soon');
+    if (cart.length === 0) {
+      message.warning('Cart is empty');
+      return;
+    }
+
+    const holdId = holdCurrentBill();
+    clearCart();
+    setSelectedRow(null);
+    message.success(`Bill held: ${holdId}`);
   };
 
   const recallBill = () => {
-    message.info('Bill recall feature coming soon');
+    if (heldBills.length === 0) {
+      message.warning('No held bills to recall');
+      return;
+    }
+
+    setShowRecallModal(true);
+  };
+
+  const handleRecallBill = (holdId: string) => {
+    recallHeldBill(holdId);
+    clearHoldBill(holdId);
+    setShowRecallModal(false);
+    setSelectedRow(null);
+    message.success('Held bill recalled');
   };
 
   const cancelOperation = () => {
@@ -536,6 +588,61 @@ const POSScreen: React.FC = () => {
           setShowCustomerSearch(false);
         }}
       />
+
+      <Modal
+        title="Apply Bill Discount"
+        open={showDiscountModal}
+        onCancel={() => setShowDiscountModal(false)}
+        onOk={confirmBillDiscount}
+        okText="Apply"
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Select
+            value={discountType}
+            onChange={(value) => setDiscountType(value)}
+            style={{ width: '100%' }}
+            options={[
+              { value: 'percent', label: 'Percentage (%)' },
+              { value: 'amount', label: 'Amount (₹)' },
+            ]}
+          />
+          <InputNumber
+            min={0}
+            max={discountType === 'percent' ? 100 : totals.total}
+            value={discountValue}
+            onChange={(value) => setDiscountValue(value || 0)}
+            style={{ width: '100%' }}
+            prefix={discountType === 'amount' ? '₹' : undefined}
+            addonAfter={discountType === 'percent' ? '%' : undefined}
+          />
+        </Space>
+      </Modal>
+
+      <Modal
+        title="Recall Held Bill"
+        open={showRecallModal}
+        onCancel={() => setShowRecallModal(false)}
+        footer={null}
+      >
+        <List
+          dataSource={heldBills}
+          locale={{ emptyText: 'No held bills' }}
+          renderItem={(bill) => (
+            <List.Item
+              actions={[
+                <Button key="recall" type="primary" onClick={() => handleRecallBill(bill.id)}>
+                  Recall
+                </Button>,
+              ]}
+            >
+              <List.Item.Meta
+                title={bill.id}
+                description={new Date(bill.timestamp).toLocaleString()}
+              />
+            </List.Item>
+          )}
+        />
+      </Modal>
 
       <PaymentModal
         visible={showPayment}

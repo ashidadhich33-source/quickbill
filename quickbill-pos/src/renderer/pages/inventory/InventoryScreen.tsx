@@ -136,8 +136,26 @@ const InventoryScreen: React.FC = () => {
     }
   };
 
-  const handleImport = () => {
-    message.info('Import functionality coming soon');
+  const handleImport = async () => {
+    try {
+      const selectedFile = await window.electronAPI.selectFile([
+        { name: 'CSV Files', extensions: ['csv'] }
+      ]);
+
+      if (!selectedFile.success || !selectedFile.data) {
+        return;
+      }
+
+      const result = await window.electronAPI.importItemsFromCSV(selectedFile.data);
+      if (result.success) {
+        message.success('Items imported successfully');
+        loadItems();
+      } else {
+        message.error(result.error || 'Error importing items');
+      }
+    } catch (error) {
+      message.error('Error importing items');
+    }
   };
 
   const handleExport = async () => {
