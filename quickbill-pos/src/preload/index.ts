@@ -107,7 +107,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Remove listeners
   removeAllListeners: (channel: string) => ipcRenderer.removeAllListeners(channel),
-  removeListener: (channel: string, callback: Function) => ipcRenderer.removeListener(channel, callback),
+  removeListener: (channel: string, callback: (...args: any[]) => void) => ipcRenderer.removeListener(channel, callback),
 
   // Error logging
   logError: (errorData: any) => ipcRenderer.invoke('system:logError', errorData),
@@ -127,7 +127,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Printer API
   printReceipt: (receiptData: any, config?: any) => ipcRenderer.invoke('printer:printReceipt', receiptData, config),
-  printInvoice: (invoiceData: any, config?: any) => ipcRenderer.invoke('printer:printInvoice', invoiceData, config),
+  printInvoiceDocument: (invoiceData: any, config?: any) => ipcRenderer.invoke('printer:printInvoice', invoiceData, config),
   getAvailablePrinters: () => ipcRenderer.invoke('printer:getAvailablePrinters'),
   testPrint: (printerName: string) => ipcRenderer.invoke('printer:testPrint', printerName),
 
@@ -307,12 +307,25 @@ declare global {
       printInvoice: (invoiceNumber: string) => Promise<any>;
       holdBill: (billData: any) => Promise<any>;
       recallBill: (holdId: string) => Promise<any>;
+      getHeldBills: () => Promise<any>;
+      deleteHeldBill: (holdId: string) => Promise<any>;
 
       // Reports API
       getSalesSummary: (startDate: string, endDate: string) => Promise<any>;
       getTopItems: (startDate: string, endDate: string) => Promise<any>;
       getCustomerAnalysis: (startDate: string, endDate: string) => Promise<any>;
       getGSTReport: (startDate: string, endDate: string) => Promise<any>;
+
+      // Returns API
+      createReturn: (returnData: any) => Promise<any>;
+      getReturnById: (returnId: number) => Promise<any>;
+      getReturnsByDateRange: (startDate: string, endDate: string) => Promise<any>;
+      getAllReturns: (limit?: number, offset?: number) => Promise<any>;
+      getReturnStatistics: (startDate: string, endDate: string) => Promise<any>;
+      getOriginalSale: (saleId: number) => Promise<any>;
+      updateReturnStatus: (returnId: number, status: string) => Promise<any>;
+      deleteReturn: (returnId: number) => Promise<any>;
+      getReturnItems: (returnId: number) => Promise<any>;
 
       // Database API
       executeQuery: (query: string, params?: any[]) => Promise<any>;
@@ -333,6 +346,25 @@ declare global {
       getSystemInfo: () => Promise<any>;
       getDiskSpace: () => Promise<any>;
       getMemoryUsage: () => Promise<any>;
+      logError: (errorData: any) => Promise<any>;
+
+      // Authentication API
+      login: (credentials: any) => Promise<any>;
+      logout: (sessionToken: string) => Promise<any>;
+      validateSession: (sessionToken: string) => Promise<any>;
+      createUser: (userData: any) => Promise<any>;
+      updateUser: (userId: number, updates: any) => Promise<any>;
+      changePassword: (userId: number, currentPassword: string, newPassword: string) => Promise<any>;
+      getAllUsers: () => Promise<any>;
+      getUserById: (userId: number) => Promise<any>;
+      deleteUser: (userId: number) => Promise<any>;
+      getAuditLogs: (limit?: number, offset?: number) => Promise<any>;
+
+      // Printer API
+      printReceipt: (receiptData: any, config?: any) => Promise<any>;
+      printInvoiceDocument: (invoiceData: any, config?: any) => Promise<any>;
+      getAvailablePrinters: () => Promise<any>;
+      testPrint: (printerName: string) => Promise<any>;
 
       // Event listeners
       onMenuAction: (callback: (action: string) => void) => void;
@@ -342,7 +374,7 @@ declare global {
 
       // Remove listeners
       removeAllListeners: (channel: string) => void;
-      removeListener: (channel: string, callback: Function) => void;
+      removeListener: (channel: string, callback: (...args: any[]) => void) => void;
 
       // Suppliers API
       getAllSuppliers: (page?: number, pageSize?: number, searchTerm?: string) => Promise<any>;

@@ -45,12 +45,12 @@ class QuickBillApp {
     setupEncryptionHandlers();
     
     // Setup purchase and supplier management handlers
-    registerSupplierHandlers();
-    registerPurchaseOrderHandlers();
-    registerPurchaseReceiptHandlers();
-    registerSupplierPaymentHandlers();
-    registerPurchaseReturnHandlers();
-    registerPurchaseReportHandlers();
+    registerSupplierHandlers(this.dbManager);
+    registerPurchaseOrderHandlers(this.dbManager);
+    registerPurchaseReceiptHandlers(this.dbManager);
+    registerSupplierPaymentHandlers(this.dbManager);
+    registerPurchaseReturnHandlers(this.dbManager);
+    registerPurchaseReportHandlers(this.dbManager);
 
     // Create main window
     await this.createMainWindow();
@@ -73,7 +73,6 @@ class QuickBillApp {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        enableRemoteModule: false,
         preload: path.join(__dirname, '../preload/index.js')
       },
       icon: path.join(__dirname, '../../resources/icon.png'),
@@ -86,7 +85,7 @@ class QuickBillApp {
       await this.mainWindow.loadURL('http://localhost:5173');
       this.mainWindow.webContents.openDevTools();
     } else {
-      await this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+      await this.mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
 
     this.mainWindow.once('ready-to-show', () => {
@@ -242,8 +241,6 @@ app.on('activate', async () => {
 });
 
 // Security: Prevent new window creation
-app.on('web-contents-created', (event, contents) => {
-  contents.on('new-window', (event, navigationUrl) => {
-    event.preventDefault();
-  });
+app.on('web-contents-created', (_event, contents) => {
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
 });

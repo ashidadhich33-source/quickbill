@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron';
-import { dbManager } from '../database/connection';
+import { DatabaseManager } from '../database/connection';
 import { SupplierPayment, SupplierPaymentFormData, APIResponse, PaginatedResponse } from '../../shared/types';
 
-export function registerSupplierPaymentHandlers(): void {
+export function registerSupplierPaymentHandlers(dbManager: DatabaseManager): void {
   // Get all supplier payments with pagination
   ipcMain.handle('supplier-payments:getAll', async (event, page = 1, pageSize = 50, searchTerm = '') => {
     try {
@@ -10,7 +10,7 @@ export function registerSupplierPaymentHandlers(): void {
       const offset = (page - 1) * pageSize;
       
       let whereClause = 'WHERE 1=1';
-      let params: any[] = [];
+      const params: any[] = [];
       
       if (searchTerm) {
         whereClause += ' AND (payment_number LIKE ? OR supplier_name LIKE ? OR reference_number LIKE ?)';

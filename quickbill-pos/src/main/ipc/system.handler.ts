@@ -33,7 +33,7 @@ export function setupSystemHandlers(): void {
   // Get disk space
   ipcMain.handle('system:diskSpace', async () => {
     try {
-      const drives = [];
+      const drives: any[] = [];
       
       if (os.platform() === 'win32') {
         // Windows - get all drives
@@ -174,8 +174,8 @@ export function setupSystemHandlers(): void {
   // Get network interfaces
   ipcMain.handle('system:networkInterfaces', async () => {
     try {
-      const interfaces = os.networkInterfaces();
-      const networkInfo = [];
+      const interfaces = os.networkInterfaces() as Record<string, any[] | undefined>;
+      const networkInfo: any[] = [];
       
       for (const [name, addresses] of Object.entries(interfaces)) {
         if (addresses) {
@@ -238,12 +238,13 @@ export function setupSystemHandlers(): void {
   // Get system preferences
   ipcMain.handle('system:getPreferences', async () => {
     try {
+      const preferencesApi = systemPreferences as any;
       const preferences = {
-        darkMode: systemPreferences.isDarkMode(),
-        highContrast: systemPreferences.isHighContrast(),
-        reducedMotion: systemPreferences.isInvertedColorScheme(),
+        darkMode: preferencesApi.isDarkMode?.() ?? false,
+        highContrast: preferencesApi.isHighContrast?.() ?? false,
+        reducedMotion: preferencesApi.isInvertedColorScheme?.() ?? false,
         accentColor: systemPreferences.getAccentColor(),
-        systemColor: systemPreferences.getSystemColor('window')
+        systemColor: preferencesApi.getSystemColor?.('window') ?? null
       };
       
       return { success: true, data: preferences };

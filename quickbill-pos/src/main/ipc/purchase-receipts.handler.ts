@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron';
-import { dbManager } from '../database/connection';
+import { DatabaseManager } from '../database/connection';
 import { PurchaseReceipt, PurchaseReceiptFormData, PurchaseReceiptItem, APIResponse, PaginatedResponse } from '../../shared/types';
 
-export function registerPurchaseReceiptHandlers(): void {
+export function registerPurchaseReceiptHandlers(dbManager: DatabaseManager): void {
   // Get all purchase receipts with pagination
   ipcMain.handle('purchase-receipts:getAll', async (event, page = 1, pageSize = 50, searchTerm = '', status = '') => {
     try {
@@ -10,7 +10,7 @@ export function registerPurchaseReceiptHandlers(): void {
       const offset = (page - 1) * pageSize;
       
       let whereClause = 'WHERE 1=1';
-      let params: any[] = [];
+      const params: any[] = [];
       
       if (searchTerm) {
         whereClause += ' AND (receipt_number LIKE ? OR supplier_name LIKE ? OR supplier_invoice_number LIKE ?)';

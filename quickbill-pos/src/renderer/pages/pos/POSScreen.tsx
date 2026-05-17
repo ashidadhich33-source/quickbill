@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Input, Button, Table, Card, Row, Col, Space, Modal,
+  Input, Button, Table, Card, Row, Col, Space, Modal, List,
   message, Divider, Tag, InputNumber, Select, Statistic, Typography
 } from 'antd';
 import {
@@ -8,6 +8,8 @@ import {
   PrinterOutlined, SaveOutlined, CloseOutlined, ShoppingCartOutlined
 } from '@ant-design/icons';
 import { usePOSStore } from '../../store/pos.store';
+import type { CartItem, POSCatalogItem } from '../../utils/pos.utils';
+import { buildSalePayload, createCartItemFromCatalogItem, roundCurrency } from '../../utils/pos.utils';
 import { useHotkeys } from '../../hooks/useHotkeys';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import ItemSearchModal from './components/ItemSearchModal';
@@ -17,25 +19,8 @@ import './POSScreen.css';
 
 const { Title, Text } = Typography;
 
-interface CartItem {
-  id: number;
-  itemId: number;
-  barcode: string;
-  brand: string;
-  itemDescription: string;
-  size: string;
-  shade: string;
-  quantity: number;
-  mrp: number;
-  sellingPrice: number;
-  discountPercent: number;
-  discountAmount: number;
-  gstPercent: number;
-  gstAmount: number;
-  total: number;
-}
 
-const POSScreen: React.FC = () => {
+export const POSScreen: React.FC = () => {
   const {
     cart,
     customer,
@@ -45,6 +30,18 @@ const POSScreen: React.FC = () => {
     updateDiscount,
     setCustomer,
     clearCart,
+    paymentMode,
+    receivedAmount,
+    billDiscount,
+    billDiscountType,
+    setPaymentMode,
+    setReceivedAmount,
+    setBillDiscount,
+    holdBill: holdCurrentBill,
+    recallBill: recallHeldBill,
+    heldBills,
+    loadHeldBills,
+    deleteHeldBill,
     calculateTotals
   } = usePOSStore();
 
@@ -54,8 +51,10 @@ const POSScreen: React.FC = () => {
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
-  const [paymentMode, setPaymentMode] = useState('CASH');
-  const [receivedAmount, setReceivedAmount] = useState<number>(0);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [showRecallModal, setShowRecallModal] = useState(false);
+  const [discountValue, setDiscountValue] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<'percent' | 'amount'>('percent');
 
   const searchInputRef = useRef<any>(null);
   const totals = calculateTotals();
@@ -86,26 +85,29 @@ const POSScreen: React.FC = () => {
     searchInputRef.current?.focus();
   }, [cart]);
 
+  useEffect(() => {
+    loadHeldBills().catch(() => {
+      message.error('Error loading held bills');
+    });
+  }, [loadHeldBills]);
+
+  const addCatalogItemToCart = useCallback((item: POSCatalogItem) => {
+    const existingItem = cart.find((cartItem) => cartItem.itemId === item.id);
+
+    if (existingItem) {
+      updateQuantity(existingItem.id, existingItem.quantity + 1);
+      return;
+    }
+
+    addToCart(createCartItemFromCatalogItem(item));
+  }, [addToCart, cart, updateQuantity]);
+
   const handleBarcodeScanned = async (barcode: string) => {
     try {
       const result = await window.electronAPI.findItemByBarcode(barcode);
       if (result.success && result.data) {
-        const item = result.data;
-        const existingItem = cart.find(i => i.barcode === barcode);
-        
-        if (existingItem) {
-          updateQuantity(existingItem.id, existingItem.quantity + 1);
-        } else {
-          addToCart({
-            ...item,
-            quantity: 1,
-            sellingPrice: item.mrp,
-            discountPercent: 0,
-            discountAmount: 0,
-            gstAmount: (item.mrp * item.gst_percentage) / 100,
-            total: item.mrp
-          });
-        }
+        const item = result.data as POSCatalogItem;
+        addCatalogItemToCart(item);
         message.success(`Added: ${item.item_description}`);
       } else {
         message.error('Item not found');
@@ -147,16 +149,23 @@ const POSScreen: React.FC = () => {
     }
 
     try {
-      const billData = {
-        customer: customer,
-        items: cart,
-        subtotal: totals.subtotal,
-        discount: totals.discount,
-        tax: totals.tax,
-        total: totals.total,
-        paymentMode: paymentMode,
-        paidAmount: receivedAmount || totals.total
-      };
+      if (paymentMode === 'CREDIT' && !customer) {
+        message.warning('Please select a customer for credit sales');
+        return;
+      }
+
+      if (receivedAmount > 0 && paymentMode !== 'CREDIT' && receivedAmount < totals.total) {
+        message.warning('Received amount cannot be less than bill total');
+        return;
+      }
+
+      const billData = buildSalePayload({
+        cart,
+        customer,
+        totals,
+        paymentMode,
+        receivedAmount,
+      });
 
       const result = await window.electronAPI.saveSale(billData);
       if (result.success) {
@@ -164,7 +173,10 @@ const POSScreen: React.FC = () => {
         printBill(result.invoiceNumber);
         clearCart();
         setCustomer(null);
+        setPaymentMode('CASH');
         setReceivedAmount(0);
+      } else {
+        message.error(result.error || 'Error saving bill');
       }
     } catch (error) {
       message.error('Error saving bill');
@@ -180,8 +192,25 @@ const POSScreen: React.FC = () => {
   };
 
   const applyBillDiscount = () => {
-    // Implementation for bill-level discount
-    message.info('Bill discount feature coming soon');
+    setDiscountValue(billDiscount);
+    setDiscountType(billDiscountType);
+    setShowDiscountModal(true);
+  };
+
+  const confirmBillDiscount = () => {
+    if (discountValue < 0) {
+      message.warning('Discount cannot be negative');
+      return;
+    }
+
+    if (discountType === 'percent' && discountValue > 100) {
+      message.warning('Percentage discount cannot exceed 100%');
+      return;
+    }
+
+    setBillDiscount(discountValue, discountType);
+    setShowDiscountModal(false);
+    message.success('Bill discount applied');
   };
 
   const showCustomerHistory = () => {
@@ -192,12 +221,47 @@ const POSScreen: React.FC = () => {
     }
   };
 
-  const holdBill = () => {
-    message.info('Bill hold feature coming soon');
+  const holdBill = async () => {
+    if (cart.length === 0) {
+      message.warning('Cart is empty');
+      return;
+    }
+
+    try {
+      const holdId = await holdCurrentBill();
+      clearCart();
+      setSelectedRow(null);
+      message.success(`Bill held: ${holdId}`);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Error holding bill');
+    }
   };
 
-  const recallBill = () => {
-    message.info('Bill recall feature coming soon');
+  const recallBill = async () => {
+    try {
+      await loadHeldBills();
+      const latestHeldBills = usePOSStore.getState().heldBills;
+      if (latestHeldBills.length === 0) {
+        message.warning('No held bills to recall');
+        return;
+      }
+
+      setShowRecallModal(true);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Error loading held bills');
+    }
+  };
+
+  const handleRecallBill = async (holdId: string) => {
+    try {
+      await recallHeldBill(holdId);
+      await deleteHeldBill(holdId);
+      setShowRecallModal(false);
+      setSelectedRow(null);
+      message.success('Held bill recalled');
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Error recalling held bill');
+    }
   };
 
   const cancelOperation = () => {
@@ -426,14 +490,14 @@ const POSScreen: React.FC = () => {
                 </div>
                 <div className="total-line">
                   <span>Taxable:</span>
-                  <span>₹{(totals.subtotal - totals.discount).toFixed(2)}</span>
+                  <span>₹{totals.taxable.toFixed(2)}</span>
                 </div>
                 <div className="total-line">
-                  <span>CGST (9%):</span>
+                  <span>CGST:</span>
                   <span>₹{(totals.tax / 2).toFixed(2)}</span>
                 </div>
                 <div className="total-line">
-                  <span>SGST (9%):</span>
+                  <span>SGST:</span>
                   <span>₹{(totals.tax / 2).toFixed(2)}</span>
                 </div>
                 <Divider />
@@ -483,7 +547,7 @@ const POSScreen: React.FC = () => {
                 />
                 {receivedAmount > 0 && (
                   <div style={{ marginTop: 5, textAlign: 'right' }}>
-                    <Text>Return: ₹{(receivedAmount - totals.total).toFixed(2)}</Text>
+                    <Text>Return: ₹{roundCurrency(Math.max(0, receivedAmount - totals.total)).toFixed(2)}</Text>
                   </div>
                 )}
               </div>
@@ -522,7 +586,7 @@ const POSScreen: React.FC = () => {
         <div>
           <span>Last Bill: #INV-2024-001234</span>
           <span style={{ margin: '0 10px' }}>|</span>
-          <span>Today's Sale: ₹45,230</span>
+          <span>Today&apos;s Sale: ₹45,230</span>
         </div>
       </div>
 
@@ -531,15 +595,7 @@ const POSScreen: React.FC = () => {
         visible={showItemSearch}
         onClose={() => setShowItemSearch(false)}
         onSelectItem={(item) => {
-          addToCart({
-            ...item,
-            quantity: 1,
-            sellingPrice: item.mrp,
-            discountPercent: 0,
-            discountAmount: 0,
-            gstAmount: (item.mrp * item.gst_percentage) / 100,
-            total: item.mrp
-          });
+          addCatalogItemToCart(item);
           setShowItemSearch(false);
         }}
       />
@@ -552,6 +608,64 @@ const POSScreen: React.FC = () => {
           setShowCustomerSearch(false);
         }}
       />
+
+      <Modal
+        title="Apply Bill Discount"
+        open={showDiscountModal}
+        onCancel={() => setShowDiscountModal(false)}
+        onOk={confirmBillDiscount}
+        okText="Apply"
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Select
+            value={discountType}
+            onChange={(value) => setDiscountType(value)}
+            style={{ width: '100%' }}
+            options={[
+              { value: 'percent', label: 'Percentage (%)' },
+              { value: 'amount', label: 'Amount (₹)' },
+            ]}
+          />
+          <InputNumber
+            min={0}
+            max={discountType === 'percent' ? 100 : totals.total}
+            value={discountValue}
+            onChange={(value) => setDiscountValue(value || 0)}
+            style={{ width: '100%' }}
+            prefix={discountType === 'amount' ? '₹' : undefined}
+            addonAfter={discountType === 'percent' ? '%' : undefined}
+          />
+        </Space>
+      </Modal>
+
+      <Modal
+        title="Recall Held Bill"
+        open={showRecallModal}
+        onCancel={() => setShowRecallModal(false)}
+        footer={null}
+      >
+        <List
+          dataSource={heldBills}
+          locale={{ emptyText: 'No held bills' }}
+          renderItem={(bill) => (
+            <List.Item
+              actions={[
+                <Button key="recall" type="primary" onClick={() => handleRecallBill(bill.holdId)}>
+                  Recall
+                </Button>,
+              ]}
+            >
+              <List.Item.Meta
+                title={bill.holdId}
+                description={[
+                  bill.createdAt ? new Date(bill.createdAt).toLocaleString() : null,
+                  bill.cashierName ? `Cashier: ${bill.cashierName}` : null,
+                ].filter(Boolean).join(' • ')}
+              />
+            </List.Item>
+          )}
+        />
+      </Modal>
 
       <PaymentModal
         visible={showPayment}

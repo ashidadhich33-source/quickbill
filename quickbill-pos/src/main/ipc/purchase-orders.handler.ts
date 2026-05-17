@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron';
-import { dbManager } from '../database/connection';
+import { DatabaseManager } from '../database/connection';
 import { PurchaseOrder, PurchaseOrderFormData, PurchaseOrderItem, APIResponse, PaginatedResponse } from '../../shared/types';
 
-export function registerPurchaseOrderHandlers(): void {
+export function registerPurchaseOrderHandlers(dbManager: DatabaseManager): void {
   // Get all purchase orders with pagination
   ipcMain.handle('purchase-orders:getAll', async (event, page = 1, pageSize = 50, searchTerm = '', status = '') => {
     try {
@@ -10,7 +10,7 @@ export function registerPurchaseOrderHandlers(): void {
       const offset = (page - 1) * pageSize;
       
       let whereClause = 'WHERE 1=1';
-      let params: any[] = [];
+      const params: any[] = [];
       
       if (searchTerm) {
         whereClause += ' AND (po_number LIKE ? OR supplier_name LIKE ?)';
