@@ -22,7 +22,6 @@ interface DrawerProps extends AntDrawerProps {
   destroyOnClose?: boolean;
   forceRender?: boolean;
   autoFocus?: boolean;
-  focusTriggerAfterClose?: boolean;
 }
 
 const Drawer: React.FC<DrawerProps> = ({
@@ -46,7 +45,6 @@ const Drawer: React.FC<DrawerProps> = ({
   destroyOnClose = false,
   forceRender = false,
   autoFocus = true,
-  focusTriggerAfterClose = true,
   ...props
 }) => {
   return (
@@ -70,7 +68,6 @@ const Drawer: React.FC<DrawerProps> = ({
       destroyOnClose={destroyOnClose}
       forceRender={forceRender}
       autoFocus={autoFocus}
-      focusTriggerAfterClose={focusTriggerAfterClose}
       {...props}
     >
       {children}

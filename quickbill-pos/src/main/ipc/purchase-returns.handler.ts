@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron';
-import { dbManager } from '../database/connection';
+import { DatabaseManager } from '../database/connection';
 import { PurchaseReturn, PurchaseReturnFormData, APIResponse, PaginatedResponse } from '../../shared/types';
 
-export function registerPurchaseReturnHandlers(): void {
+export function registerPurchaseReturnHandlers(dbManager: DatabaseManager): void {
   // Get all purchase returns with pagination
   ipcMain.handle('purchase-returns:getAll', async (event, page = 1, pageSize = 50, searchTerm = '', status = '') => {
     try {
@@ -376,7 +376,7 @@ export function registerPurchaseReturnHandlers(): void {
       const db = dbManager.getDatabase();
       
       let whereClause = 'WHERE pr.status IN (?, ?)';
-      let params = ['RECEIVED', 'VERIFIED'];
+      let params: any[] = ['RECEIVED', 'VERIFIED'];
       
       if (supplierId) {
         whereClause += ' AND pr.supplier_id = ?';

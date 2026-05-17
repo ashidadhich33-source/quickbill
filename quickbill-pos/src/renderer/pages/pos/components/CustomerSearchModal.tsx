@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Modal, Input, Table, Button, Space, Tag, message, Spin, Empty, Tabs
+  Modal, Input, Table, Button, Space, Tag, message, Spin, Empty, Tabs, Form, Select, InputNumber
 } from 'antd';
 import { SearchOutlined, UserAddOutlined, EditOutlined } from '@ant-design/icons';
 
@@ -27,6 +27,8 @@ interface CustomerSearchModalProps {
   onSelectCustomer: (customer: Customer) => void;
 }
 
+const { Option } = Select;
+
 const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
   visible,
   onClose,
@@ -37,6 +39,9 @@ const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [activeTab, setActiveTab] = useState('search');
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     if (visible) {
@@ -69,13 +74,41 @@ const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
   };
 
   const handleCreateCustomer = () => {
-    // Open customer creation form
-    message.info('Customer creation form coming soon');
+    setEditingCustomer(null);
+    form.resetFields();
+    form.setFieldsValue({ customer_type: 'RETAIL', credit_limit: 0 });
+    setShowCustomerForm(true);
   };
 
   const handleEditCustomer = (customer: Customer) => {
-    // Open customer edit form
-    message.info('Customer edit form coming soon');
+    setEditingCustomer(customer);
+    form.setFieldsValue(customer);
+    setShowCustomerForm(true);
+  };
+
+  const handleSaveCustomer = async () => {
+    try {
+      const values = await form.validateFields();
+      const result = editingCustomer
+        ? await window.electronAPI.updateCustomer(editingCustomer.id, values)
+        : await window.electronAPI.createCustomer(values);
+
+      if (!result.success) {
+        message.error(result.error || `Error ${editingCustomer ? 'updating' : 'creating'} customer`);
+        return;
+      }
+
+      message.success(`Customer ${editingCustomer ? 'updated' : 'created'} successfully`);
+      setShowCustomerForm(false);
+      await loadCustomers();
+
+      const lookup = await window.electronAPI.findCustomerByMobile(values.mobile);
+      if (lookup.success && lookup.data) {
+        onSelectCustomer(lookup.data);
+      }
+    } catch (error) {
+      message.error(`Error ${editingCustomer ? 'updating' : 'creating'} customer`);
+    }
   };
 
   const searchColumns = [
@@ -292,6 +325,7 @@ const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
   ];
 
   return (
+    <>
     <Modal
       title="Customer Search"
       open={visible}
@@ -317,6 +351,49 @@ const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
         items={tabItems}
       />
     </Modal>
+
+    <Modal
+      title={editingCustomer ? 'Edit Customer' : 'Create Customer'}
+      open={showCustomerForm}
+      onCancel={() => setShowCustomerForm(false)}
+      onOk={handleSaveCustomer}
+      okText={editingCustomer ? 'Update' : 'Create'}
+    >
+      <Form form={form} layout="vertical">
+        <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Please enter customer name' }]}>
+          <Input />
+        </Form.Item>
+        <Form.Item name="mobile" label="Mobile" rules={[{ required: true, message: 'Please enter mobile number' }]}>
+          <Input />
+        </Form.Item>
+        <Form.Item name="email" label="Email">
+          <Input />
+        </Form.Item>
+        <Form.Item name="address" label="Address">
+          <Input.TextArea rows={2} />
+        </Form.Item>
+        <Space style={{ width: '100%' }} size="middle">
+          <Form.Item name="city" label="City" style={{ flex: 1 }}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="state" label="State" style={{ flex: 1 }}>
+            <Input />
+          </Form.Item>
+        </Space>
+        <Space style={{ width: '100%' }} size="middle">
+          <Form.Item name="credit_limit" label="Credit Limit" style={{ flex: 1 }}>
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="customer_type" label="Type" style={{ flex: 1 }}>
+            <Select>
+              <Option value="RETAIL">Retail</Option>
+              <Option value="WHOLESALE">Wholesale</Option>
+            </Select>
+          </Form.Item>
+        </Space>
+      </Form>
+    </Modal>
+    </>
   );
 };
 

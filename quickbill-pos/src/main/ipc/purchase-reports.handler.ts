@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron';
-import { dbManager } from '../database/connection';
+import { DatabaseManager } from '../database/connection';
 import { APIResponse } from '../../shared/types';
 
-export function registerPurchaseReportHandlers(): void {
+export function registerPurchaseReportHandlers(dbManager: DatabaseManager): void {
   // Purchase summary report
   ipcMain.handle('purchase-reports:getSummary', async (event, startDate: string, endDate: string) => {
     try {

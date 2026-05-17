@@ -158,7 +158,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 style={{ width: '100%' }}
                 prefix="₹"
                 formatter={(value) => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                parser={(value) => value!.replace(/₹\s?|(,*)/g, '')}
+                parser={(value) => Number(value?.replace(/₹\s?|(,*)/g, '') || 0)}
               />
             </Form.Item>
 
