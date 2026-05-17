@@ -107,7 +107,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Remove listeners
   removeAllListeners: (channel: string) => ipcRenderer.removeAllListeners(channel),
-  removeListener: (channel: string, callback: Function) => ipcRenderer.removeListener(channel, callback),
+  removeListener: (channel: string, callback: (...args: any[]) => void) => ipcRenderer.removeListener(channel, callback),
 
   // Error logging
   logError: (errorData: any) => ipcRenderer.invoke('system:logError', errorData),

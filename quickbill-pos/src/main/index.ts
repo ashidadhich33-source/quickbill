@@ -73,7 +73,6 @@ class QuickBillApp {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        enableRemoteModule: false,
         preload: path.join(__dirname, '../preload/index.js')
       },
       icon: path.join(__dirname, '../../resources/icon.png'),
@@ -242,8 +241,6 @@ app.on('activate', async () => {
 });
 
 // Security: Prevent new window creation
-app.on('web-contents-created', (event, contents) => {
-  contents.on('new-window', (event, navigationUrl) => {
-    event.preventDefault();
-  });
+app.on('web-contents-created', (_event, contents) => {
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
 });

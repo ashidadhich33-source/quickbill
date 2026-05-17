@@ -238,12 +238,13 @@ export function setupSystemHandlers(): void {
   // Get system preferences
   ipcMain.handle('system:getPreferences', async () => {
     try {
+      const preferencesApi = systemPreferences as any;
       const preferences = {
-        darkMode: systemPreferences.isDarkMode(),
-        highContrast: systemPreferences.isHighContrast(),
-        reducedMotion: systemPreferences.isInvertedColorScheme(),
+        darkMode: preferencesApi.isDarkMode?.() ?? false,
+        highContrast: preferencesApi.isHighContrast?.() ?? false,
+        reducedMotion: preferencesApi.isInvertedColorScheme?.() ?? false,
         accentColor: systemPreferences.getAccentColor(),
-        systemColor: systemPreferences.getSystemColor('window')
+        systemColor: preferencesApi.getSystemColor?.('window') ?? null
       };
       
       return { success: true, data: preferences };

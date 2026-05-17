@@ -272,7 +272,7 @@ export class ExportService {
 </html>`;
   }
 
-  async getExportHistory(): Promise<{ success: boolean; files?: string[]; error?: string }> {
+  async getExportHistory(): Promise<{ success: boolean; files?: Array<{ name: string; path: string; size: number; created: Date }>; error?: string }> {
     try {
       const files = fs.readdirSync(this.outputDir)
         .filter(file => file.endsWith('.csv') || file.endsWith('.json') || file.endsWith('.xlsx') || file.endsWith('.html'))
